@@ -302,7 +302,7 @@
 
         let appConfig = null;
         let fileStorage = {};
-        const COMPRESSION_QUALITY = 0.7;
+        const COMPRESSION_QUALITY = 0.6;
         const MAX_WIDTH = 1280;
         const CANVAS_WIDTH = 1280;
         const CANVAS_HEIGHT = 960; // 4:3 ratio
@@ -398,7 +398,17 @@
                 fileStorage[id].push(file);
                 updatePreview(id);
                 saveDraft();
-                Swal.close();
+                
+                // Hitung Ukuran File KB dan tampilkan Toast
+                const kbSize = Math.round(file.size / 1024);
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: `📸 Foto Terambil (${kbSize} KB)`,
+                    showConfirmButton: false,
+                    timer: 2000
+                });
             }, 'image/jpeg', COMPRESSION_QUALITY);
         }
 
