@@ -215,6 +215,10 @@
             justify-content: center;
             cursor: pointer;
         }
+
+        .swal-top-zindex {
+            z-index: 99999 !important;
+        }
     </style>
 </head>
 
@@ -388,8 +392,6 @@
             ctx.fillStyle = 'white'; ctx.shadowBlur = 0;
             ctx.fillText(watermarkText, CANVAS_WIDTH - padding, CANVAS_HEIGHT - padding);
 
-            Swal.fire({ title: 'Memproses Foto...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
-
             canvas.toBlob(blob => {
                 const timestamp = new Date().getTime();
                 const fileName = `canvas_${timestamp}_${Math.random().toString(36).substr(2, 9)}.jpg`;
@@ -403,11 +405,14 @@
                 const kbSize = Math.round(file.size / 1024);
                 Swal.fire({
                     toast: true,
-                    position: 'top-end',
+                    position: 'top',
                     icon: 'success',
-                    title: `📸 Foto Terambil (${kbSize} KB)`,
+                    title: `Foto Terambil (${kbSize} KB)`,
                     showConfirmButton: false,
-                    timer: 2000
+                    timer: 2000,
+                    customClass: {
+                        container: 'swal-top-zindex'
+                    }
                 });
             }, 'image/jpeg', COMPRESSION_QUALITY);
         }
