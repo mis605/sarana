@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Monitoring</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --input-bg: #ffffff;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        [data-bs-theme="dark"] {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --input-bg: #0f172a;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            padding-bottom: 80px;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 800px;
+            margin-top: 24px;
+        }
+
+        .glass-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        .app-header {
+            padding: 32px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            color: white;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+        }
+
+        .section-header {
+            background: var(--bg-body);
+            padding: 12px 16px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--primary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .form-control,
+        .form-select {
+            border-radius: 10px;
+            padding: 12px;
+            background-color: var(--input-bg);
+            border-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        .nav-floating {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            border-radius: 50px;
+            display: flex;
+            gap: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            border-radius: 40px;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.3s;
+        }
+
+        .nav-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .theme-switch-small {
+            width: 42px;
+            height: 42px;
+            border-radius: 21px;
+            background: var(--bg-body);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .stat-card {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .history-item {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .img-thumbnail-custom {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .badge-lokasi {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body data-bs-theme="light">
+
+    <nav class="nav-floating">
+        <a href="index.html" class="nav-btn"><i class="bi bi-pencil-square"></i> Form</a>
+        <a href="dashboard.html" class="nav-btn active"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
+        <div class="theme-switch-small" onclick="toggleTheme()">
+            <i id="themeIcon" class="bi bi-moon-stars-fill"></i>
+        </div>
+    </nav>
+
+    <div class="container mb-5">
+        <div class="app-header">
+            <h2 class="fw-bold mb-1">📊 Dashboard Monitoring</h2>
+            <p class="mb-0 opacity-75">Summary Harian Ceklist Sarana Gedung</p>
+        </div>
+
+        <input type="hidden" id="dashboardReportType" value="Harian">
+        
+        <!-- Dashboard Tabs -->
+        <div class="glass-card mb-3">
+            <div class="d-flex p-2 gap-2" id="dashboardTabs">
+                <button type="button" class="btn btn-sm btn-primary flex-fill" onclick="setDashboardTab('Harian', this)">HARIAN</button>
+                <button type="button" class="btn btn-sm btn-outline-primary flex-fill" onclick="setDashboardTab('Mingguan', this)">MINGGUAN</button>
+                <button type="button" class="btn btn-sm btn-outline-primary flex-fill" onclick="setDashboardTab('Bulanan', this)">BULANAN</button>
+            </div>
+        </div>
+
+        <!-- Date Filter Range -->
+        <div class="glass-card mb-3 p-3">
+            <div class="row g-2 align-items-end">
+                <div class="col-6 col-md-5">
+                    <label class="form-label small fw-bold mb-1"><i class="bi bi-calendar-event me-1"></i>Mulai</label>
+                    <input type="date" id="filterStart" class="form-control" onchange="renderDashboard(globalDashboardData)">
+                </div>
+                <div class="col-6 col-md-5">
+                    <label class="form-label small fw-bold mb-1"><i class="bi bi-calendar-check me-1"></i>Selesai</label>
+                    <input type="date" id="filterEnd" class="form-control" onchange="renderDashboard(globalDashboardData)">
+                </div>
+                <div class="col-12 col-md-2">
+                    <button class="btn btn-outline-danger w-100 mt-2 mt-md-0" onclick="clearDateFilter()">
+                        <i class="bi bi-trash3 me-1"></i>Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="row g-3 mb-4">
+            <div class="col-6">
+                <div class="glass-card stat-card h-100" id="cardDone" style="cursor: pointer; border: 2px solid #198754; transition: 0.3s;" onclick="toggleView('done')">
+                    <div class="stat-label">Tasklist Done</div>
+                    <div class="stat-value text-success" id="statDone">-</div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="glass-card stat-card h-100" id="cardPending" style="cursor: pointer; border: 2px solid transparent; transition: 0.3s;" onclick="toggleView('pending')">
+                    <div class="stat-label">Tasklist Pending</div>
+                    <div class="stat-value text-danger" id="statPending">-</div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="glass-card p-3">
+                    <div class="stat-label mb-2 fw-bold text-center">Persentase Pekerjaan PIC</div>
+                    <div class="row text-center g-2" id="statProgressPic">
+                        <!-- Akan diisi otomatis oleh JS -->
+                        <div class="col-12 text-muted small">Memuat data progres...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters & List -->
+        <div class="glass-card">
+            <div class="section-header">
+                <span><i class="bi bi-list-ul me-2"></i>Riwayat Laporan Hari Ini</span>
+                <button class="btn btn-sm btn-outline-primary py-0" onclick="loadDashboardData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+            </div>
+            <div id="loadingState" class="p-5 text-center">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Memuat data...</p>
+            </div>
+            <div id="emptyState" class="p-5 text-center d-none">
+                <i class="bi bi-clipboard-x fs-1 text-muted"></i>
+                <p class="mt-2 text-muted">Belum ada laporan hari ini.</p>
+            </div>
+            <div id="dashboardList" class="history-container">
+                <!-- Data will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Image Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-body p-0 position-relative">
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
+                        data-bs-dismiss="modal" aria-label="Close"></button>
+                    <img src="" id="modalImage" class="img-fluid rounded shadow-lg w-100">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ⚠️ PASTIKAN URL API GAS INI SAMA SEPERTI DI INDEX.HTML
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyVLmibg1_19fs_PssRd2e1lHOgu863cFNKx98C824-VSGkGHSiMxyrMCWPIQASlbChXg/exec';
+
+        // Theme Toggle
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.getElementById('themeIcon');
+            const isDark = body.getAttribute('data-bs-theme') === 'dark';
+            body.setAttribute('data-bs-theme', isDark ? 'light' : 'dark');
+            icon.className = isDark ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.body.setAttribute('data-bs-theme', savedTheme);
+            const icon = document.getElementById('themeIcon');
+            if (icon) icon.className = savedTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+        });
+
+        let globalDashboardData = [];
+        let appConfig = null;
+        let currentView = 'done';
+
+        function toggleView(view) {
+            currentView = view;
+            if (view === 'done') {
+                document.getElementById('cardDone').style.borderColor = '#198754';
+                document.getElementById('cardPending').style.borderColor = 'transparent';
+            } else {
+                document.getElementById('cardDone').style.borderColor = 'transparent';
+                document.getElementById('cardPending').style.borderColor = '#dc3545';
+            }
+            renderDashboard(globalDashboardData);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set default filter to today for Harian tab
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('filterStart').value = today;
+            document.getElementById('filterEnd').value = today;
+            
+            loadAppConfig();
+        });
+
+        function loadAppConfig() {
+            fetch(GAS_URL)
+                .then(res => res.json())
+                .then(config => {
+                    appConfig = config;
+                    // Update App Title jika ada di settings
+                    if (config.settings && config.settings.app_title) {
+                        document.querySelector('.app-header h2').innerHTML = `📊 ${config.settings.app_title} Dashboard`;
+                    }
+                    loadDashboardData();
+                })
+                .catch(err => {
+                    Swal.fire('Error', 'Gagal memuat konfigurasi API', 'error');
+                });
+        }
+
+        function setDashboardTab(type, btn) {
+            document.getElementById('dashboardReportType').value = type;
+            
+            // Update UI Tabs
+            const buttons = document.querySelectorAll('#dashboardTabs button');
+            buttons.forEach(b => {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-outline-primary');
+            });
+            btn.classList.remove('btn-outline-primary');
+            btn.classList.add('btn-primary');
+
+            // Logic Default: jika ke Harian, balikkan ke hari ini. Jika ke Mingguan/Bulanan, kosongkan filter agar lihat semua.
+            if (type === 'Harian') {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('filterStart').value = today;
+                document.getElementById('filterEnd').value = today;
+            } else {
+                clearDateFilter();
+            }
+
+            renderDashboard(globalDashboardData);
+        }
+
+        function clearDateFilter() {
+            document.getElementById('filterStart').value = '';
+            document.getElementById('filterEnd').value = '';
+            renderDashboard(globalDashboardData);
+        }
+
+        function loadDashboardData() {
+            const list = document.getElementById('dashboardList');
+            const loading = document.getElementById('loadingState');
+            const empty = document.getElementById('emptyState');
+
+            loading.classList.remove('d-none');
+            list.innerHTML = '';
+            empty.classList.add('d-none');
+
+            fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "dashboard" })
+            })
+            .then(res => res.json())
+            .then(data => {
+                globalDashboardData = data;
+                renderDashboard(data);
+            })
+            .catch(err => {
+                loading.classList.add('d-none');
+                Swal.fire('Error', 'Gagal memuat data riwayat', 'error');
+            });
+        }
+
+        function renderDashboard(data) {
+            if (!appConfig) return; // Tunggu config dimuat
+
+            const list = document.getElementById('dashboardList');
+            const loading = document.getElementById('loadingState');
+            const empty = document.getElementById('emptyState');
+            const activeType = document.getElementById('dashboardReportType').value;
+            const startDate = document.getElementById('filterStart').value;
+            const endDate = document.getElementById('filterEnd').value;
+            const historyTitle = document.querySelector('.section-header span');
+            
+            loading.classList.add('d-none');
+            list.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                empty.classList.remove('d-none');
+                return;
+            }
+
+            // 1. Filter berdasarkan Tipe Laporan
+            let filteredData = data.filter(row => {
+                const rowType = row.reporttype || row.jenis_laporan || 'Harian';
+                return rowType.toLowerCase() === activeType.toLowerCase();
+            });
+
+            // 2. Filter berdasarkan Range Tanggal
+            if (startDate || endDate) {
+                filteredData = filteredData.filter(row => {
+                    const [d, m, y] = row.tanggal.split('/');
+                    const rowDate = new Date(y, m - 1, d);
+                    rowDate.setHours(0,0,0,0);
+
+                    if (startDate) {
+                        const start = new Date(startDate);
+                        start.setHours(0,0,0,0);
+                        if (rowDate < start) return false;
+                    }
+                    if (endDate) {
+                        const end = new Date(endDate);
+                        end.setHours(23,59,59,999);
+                        if (rowDate > end) return false;
+                    }
+                    return true;
+                });
+            }
+
+            // 3. Update Title UI
+            if (activeType === 'Harian') {
+                if (!startDate && !endDate) {
+                     historyTitle.innerHTML = currentView === 'done' ? `<i class="bi bi-list-ul me-2"></i>Semua Riwayat Harian` : `<i class="bi bi-x-circle me-2"></i>Tugas Pending`;
+                } else if (startDate === endDate && startDate !== '') {
+                     historyTitle.innerHTML = currentView === 'done' ? `<i class="bi bi-list-ul me-2"></i>Laporan Hari ${startDate.split('-').reverse().join('/')}` : `<i class="bi bi-x-circle me-2"></i>Pending: ${startDate.split('-').reverse().join('/')}`;
+                } else {
+                     historyTitle.innerHTML = currentView === 'done' ? `<i class="bi bi-list-ul me-2"></i>Riwayat Harian (Filter)` : `<i class="bi bi-x-circle me-2"></i>Tugas Pending (Filter)`;
+                }
+            } else {
+                historyTitle.innerHTML = currentView === 'done' ? `<i class="bi bi-list-ul me-2"></i>Riwayat ${activeType}` : `<i class="bi bi-x-circle me-2"></i>Pending ${activeType}`;
+            }
+
+            // 4. Hitung Tasklist Done, Pending, dan Progress PIC Dinamis
+            const expectedTasks = appConfig.lokasi.map(l => ({ petugas: l.pic, ruangan: l.nama }));
+
+            let pendingTasks = [];
+            let statsPerPIC = {};
+
+            // Inisialisasi stats untuk semua petugas dari appConfig
+            appConfig.petugas.forEach(p => {
+                statsPerPIC[p.nama] = { done: 0, target: 0 };
+            });
+
+            // Hitung Target Per PIC
+            expectedTasks.forEach(task => {
+                if (statsPerPIC[task.petugas]) {
+                    statsPerPIC[task.petugas].target++;
+                }
+            });
+
+            expectedTasks.forEach(task => {
+                // Cari apakah sudah dikerjakan di rentang waktu/filter ini
+                const isDone = filteredData.find(row => row.petugas === task.petugas && row.ruangan === task.ruangan);
+                
+                if (isDone) {
+                    if (statsPerPIC[task.petugas]) statsPerPIC[task.petugas].done++;
+                } else {
+                    pendingTasks.push(task);
+                }
+            });
+
+            // Update Summary Cards
+            const totalDone = Object.values(statsPerPIC).reduce((sum, s) => sum + s.done, 0);
+            document.getElementById('statDone').innerText = totalDone + " / " + expectedTasks.length;
+            document.getElementById('statPending').innerText = pendingTasks.length;
+
+            // Render Progres PIC Dinamis ke HTML
+            const statProgressPic = document.getElementById('statProgressPic');
+            statProgressPic.innerHTML = '';
+            
+            const petugasNames = Object.keys(statsPerPIC);
+            petugasNames.forEach((name, idx) => {
+                const stats = statsPerPIC[name];
+                if (stats.target === 0) return; // Skip jika petugas tidak ada penugasan lokasi
+
+                const prog = Math.round((stats.done / stats.target) * 100);
+                const borderClass = idx < petugasNames.length - 1 ? 'border-end' : '';
+                
+                const col = document.createElement('div');
+                col.className = `col-6 ${borderClass}`;
+                col.innerHTML = `
+                    <small class="d-block text-muted text-truncate" title="${name}">${name.split(' ')[0]}</small>
+                    <span class="fs-5 fw-bold ${prog === 100 ? 'text-success' : 'text-warning'}">${prog}%</span>
+                `;
+                statProgressPic.appendChild(col);
+            });
+
+            // 5. Render List berdasarkan Mode (Done / Pending)
+            list.innerHTML = '';
+
+            if (currentView === 'done') {
+                if (filteredData.length === 0) {
+                    empty.classList.remove('d-none');
+                    empty.innerHTML = `<i class="bi bi-clipboard-x fs-1 text-muted"></i><p class="mt-2 text-muted">Belum ada laporan selesai di filter ini.</p>`;
+                    return;
+                } else {
+                    empty.classList.add('d-none');
+                }
+
+                filteredData.forEach((row, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item animate__animated animate__fadeIn';
+
+                    let images = [];
+                    Object.keys(row).forEach(key => {
+                        const val = row[key];
+                        if (typeof val === 'string' && val.includes('drive.google.com')) {
+                            const links = val.split(',').map(s => s.trim());
+                            links.forEach(link => {
+                                if (link) {
+                                    let cleanLink = link.replace('uc?id=', 'thumbnail?id=') + (link.includes('sz=') ? '' : '&sz=w500');
+                                    images.push(cleanLink);
+                                }
+                            });
+                        }
+                    });
+
+                    const reportType = row.jenis_laporan || row.reporttype || 'Harian';
+                    
+                    let rawProgress = row.progress !== undefined ? row.progress : 0;
+                    let displayProgress = "";
+                    let progressVal = 0;
+
+                    if (typeof rawProgress === 'number') {
+                        progressVal = rawProgress <= 1 ? Math.round(rawProgress * 100) : Math.round(rawProgress);
+                        displayProgress = progressVal + "%";
+                    } else {
+                        progressVal = parseInt(rawProgress) || 0;
+                        displayProgress = rawProgress.includes('%') ? rawProgress : rawProgress + "%";
+                    }
+
+                    const progressClass = progressVal >= 100 ? 'bg-success' : (progressVal > 0 ? 'bg-warning text-dark' : 'bg-secondary');
+                    const badgeClass = reportType === 'Harian' ? 'bg-primary' : (reportType === 'Mingguan' ? 'bg-success' : 'bg-warning text-dark');
+
+                    const imgHTML = images.length > 0
+                        ? images.map(img => `<img src="${img}" class="img-thumbnail-custom" onclick="viewImage('${img}')" onerror="this.style.display='none'">`).join('')
+                        : '<small class="text-muted italic">Tidak ada foto</small>';
+
+                    item.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <div class="d-flex gap-2 mb-2">
+                      <span class="badge ${badgeClass}" style="font-size: 0.65rem;">${reportType.toUpperCase()}</span>
+                      <span class="badge-lokasi d-inline-block">${row.ruangan || 'Unknown'}</span>
+                    </div>
+                    <h6 class="mb-0 fw-bold">${row.petugas || 'Anonim'}</h6>
+                    <small class="text-muted"><i class="bi bi-clock me-1"></i>${row.timestamp} - ${row.tanggal}</small>
+                  </div>
+                  <div class="text-end">
+                     <span class="badge ${progressClass} border rounded-pill" style="font-size: 0.7rem;">${progressVal >= 100 ? 'Selesai' : 'Progress: ' + displayProgress}</span>
+                     <button type="button" class="d-block mt-2 btn btn-sm btn-outline-primary py-0 px-2" style="font-size:0.75rem;" onclick="togglePhoto(${index})">
+                       <i class="bi bi-images me-1"></i>Lihat Foto
+                     </button>
+                  </div>
+                </div>
+                <div id="img-container-${index}" class="image-scroller-wrapper d-none mt-3">
+                    <hr class="mt-0 mb-2 opacity-25">
+                    <div class="image-scroller d-flex gap-2 overflow-auto pb-2">
+                      ${imgHTML}
+                    </div>
+                </div>
+              `;
+                    list.appendChild(item);
+                });
+
+            } else if (currentView === 'pending') {
+                if (pendingTasks.length === 0) {
+                    empty.classList.remove('d-none');
+                    empty.innerHTML = `<i class="bi bi-check-circle-fill fs-1 text-success"></i><p class="mt-2 text-muted fw-bold">Semua tasklist sudah dikerjakan!</p>`;
+                    return;
+                } else {
+                    empty.classList.add('d-none');
+                }
+
+                pendingTasks.forEach(task => {
+                   const item = document.createElement('div');
+                   item.className = 'history-item animate__animated animate__fadeIn opacity-75';
+                   item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h6 class="mb-1 fw-bold text-danger"><i class="bi bi-x-circle me-1"></i> Belum Dikerjakan</h6>
+                        <small class="text-muted d-block"><i class="bi bi-person me-2"></i>${task.petugas}</small>
+                        <small class="text-muted d-block mt-1"><i class="bi bi-geo-alt me-2"></i>${task.ruangan}</small>
+                      </div>
+                      <span class="badge bg-secondary">Pending</span>
+                    </div>
+                   `;
+                   list.appendChild(item);
+                });
+            }
+        }
+
+        function togglePhoto(index) {
+            const imgContainer = document.getElementById('img-container-' + index);
+            if (!imgContainer) return;
+            const isHidden = imgContainer.classList.contains('d-none');
+            document.querySelectorAll('.image-scroller-wrapper').forEach(el => el.classList.add('d-none'));
+            if (isHidden) imgContainer.classList.remove('d-none');
+        }
+
+        function viewImage(url) {
+            const modalImg = document.getElementById('modalImage');
+            modalImg.src = url;
+            const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+            modal.show();
+        }
+    </script>
+</body>
+
+</html>
