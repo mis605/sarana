@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ceklis Sarana Gedung</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --input-bg: #ffffff;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        [data-bs-theme="dark"] {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --input-bg: #0f172a;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            padding-bottom: 80px;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 800px;
+            margin-top: 24px;
+        }
+
+        .glass-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        .app-header {
+            padding: 32px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            color: white;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+        }
+
+        .section-header {
+            background: var(--bg-body);
+            padding: 12px 16px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--primary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .checklist-item {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .checklist-item:last-child {
+            border-bottom: none;
+        }
+
+        .label-tugas {
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: block;
+            font-size: 0.95rem;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .btn-upload {
+            font-size: 0.85rem;
+            padding: 12px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            border: 1px dashed var(--border-color);
+            background: var(--bg-body);
+            color: var(--text-main);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-upload:hover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .preview-wrapper {
+            position: relative;
+            aspect-ratio: 1/1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .preview-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .btn-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            width: 22px;
+            height: 22px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .form-control,
+        .form-select {
+            border-radius: 10px;
+            padding: 12px;
+            background-color: var(--input-bg);
+            border-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        .nav-floating {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            border-radius: 50px;
+            display: flex;
+            gap: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            border-radius: 40px;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.3s;
+        }
+
+        .nav-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .theme-switch-small {
+            width: 42px;
+            height: 42px;
+            border-radius: 21px;
+            background: var(--bg-body);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body data-bs-theme="light">
+
+    <nav class="nav-floating">
+        <a href="#" class="nav-btn active"><i class="bi bi-pencil-square"></i> Form</a>
+        <!-- Dashboard link removed for simplification on purely static site, or you can link it to another static html -->
+        <div class="theme-switch-small" onclick="toggleTheme()">
+            <i id="themeIcon" class="bi bi-moon-stars-fill"></i>
+        </div>
+    </nav>
+
+    <div class="container mb-5">
+        <div class="app-header">
+            <h2 class="fw-bold mb-1">🏢 Sarana Gedung</h2>
+            <p class="mb-0 opacity-75">Sistem Monitoring Facility Management</p>
+        </div>
+
+        <form id="mainForm" onsubmit="handleFormSubmit(event, this)">
+            <input type="hidden" name="reportType" id="reportType" value="Harian">
+
+            <div class="glass-card mb-3">
+                <div class="d-flex p-2 gap-2" id="reportTabs">
+                    <button type="button" class="btn btn-sm btn-primary flex-fill"
+                        onclick="setReportType('Harian', this)">HARIAN</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary flex-fill"
+                        onclick="setReportType('Mingguan', this)">MINGGUAN</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary flex-fill"
+                        onclick="setReportType('Bulanan', this)">BULANAN</button>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="section-header"><span><i class="bi bi-person-badge me-2"></i>Informasi Petugas</span></div>
+                <div class="p-3">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">👤 Nama Petugas</label>
+                        <select class="form-select" name="petugas" id="petugasSelect" onchange="updateLokasiOptions()"
+                            required>
+                            <option value="" selected disabled>-- Memuat Daftar Petugas... --</option>
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold">📍 Lokasi Penugasan</label>
+                        <select class="form-select" name="ruangan" id="ruanganSelect" onchange="renderChecklist()"
+                            required>
+                            <option value="" selected disabled>-- Pilih Petugas Dahulu --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="checklistContainer"></div>
+
+            <div class="d-grid gap-2 mt-4 mb-5">
+                <button type="submit" id="submitBtn" class="btn btn-primary py-3 fw-bold">KIRIM LAPORAN
+                    SEKARANG</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Modal Kamera Canvas -->
+    <div id="cameraModal"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; flex-direction:column; align-items:center; justify-content:center; gap:16px;">
+        <video id="cameraVideo" autoplay playsinline
+            style="width:100%; max-width:640px; max-height:60vh; border-radius:12px; background:#000;"></video>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center;">
+            <button type="button" onclick="capturePhoto()"
+                style="padding:14px 32px; border-radius:50px; border:none; background:#2563eb; color:#fff; font-size:1rem; font-weight:700; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <i class="bi bi-camera-fill"></i> Ambil Foto
+            </button>
+            <button type="button" onclick="closeCamera()"
+                style="padding:14px 28px; border-radius:50px; border:2px solid #ef4444; background:transparent; color:#ef4444; font-size:1rem; font-weight:700; cursor:pointer;">
+                <i class="bi bi-x-lg"></i> Tutup
+            </button>
+        </div>
+        <p style="color:rgba(255,255,255,0.5); font-size:0.8rem; margin:0;">Resolusi 1280×960 • Rasio 4:3 • Max 3 foto
+            per item</p>
+    </div>
+
+    <script>
+        // ⚠️ GANTI STRING INI DENGAN URL WEB APP GOOGLE APPS SCRIPT YANG BARU!
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyVLmibg1_19fs_PssRd2e1lHOgu863cFNKx98C824-VSGkGHSiMxyrMCWPIQASlbChXg/exec';
+
+        let appConfig = null;
+        let fileStorage = {};
+        const COMPRESSION_QUALITY = 0.7;
+        const MAX_WIDTH = 1280;
+        const CANVAS_WIDTH = 1280;
+        const CANVAS_HEIGHT = 960; // 4:3 ratio
+
+        // Theme Toggle
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.getElementById('themeIcon');
+            const isDark = body.getAttribute('data-bs-theme') === 'dark';
+            body.setAttribute('data-bs-theme', isDark ? 'light' : 'dark');
+            icon.className = isDark ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.body.setAttribute('data-bs-theme', savedTheme);
+            const icon = document.getElementById('themeIcon');
+            if (icon) icon.className = savedTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+        });
+
+        // ======= KAMERA CANVAS =======
+        let activeCameraItemId = null;
+        let cameraStream = null;
+
+        function openCamera(itemId) {
+            activeCameraItemId = itemId;
+            const modal = document.getElementById('cameraModal');
+            modal.style.display = 'flex';
+            const video = document.getElementById('cameraVideo');
+            navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } },
+                audio: false
+            }).then(stream => {
+                cameraStream = stream;
+                video.srcObject = stream;
+                video.play();
+            }).catch(err => {
+                closeCamera();
+                Swal.fire('Kamera Gagal', 'Tidak dapat mengakses kamera: ' + err.message, 'error');
+            });
+        }
+
+        function closeCamera() {
+            if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+            document.getElementById('cameraModal').style.display = 'none';
+            activeCameraItemId = null;
+        }
+
+        async function capturePhoto() {
+            if (!activeCameraItemId) return;
+            const id = activeCameraItemId;
+            const existingCount = fileStorage[id] ? fileStorage[id].length : 0;
+            if (existingCount >= 3) {
+                Swal.fire('Limit Foto', 'Maksimal hanya 3 foto per item pekerjaan.', 'warning');
+                return;
+            }
+
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.createElement('canvas');
+            canvas.width = CANVAS_WIDTH; canvas.height = CANVAS_HEIGHT;
+            const ctx = canvas.getContext('2d');
+
+            const vw = video.videoWidth, vh = video.videoHeight;
+            let sx = 0, sy = 0, sw = vw, sh = vh;
+            const targetRatio = CANVAS_WIDTH / CANVAS_HEIGHT, videoRatio = vw / vh;
+            if (videoRatio > targetRatio) { sw = Math.round(vh * targetRatio); sx = Math.round((vw - sw) / 2); }
+            else { sh = Math.round(vw / targetRatio); sy = Math.round((vh - sh) / 2); }
+            ctx.drawImage(video, sx, sy, sw, sh, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            const now = new Date();
+            const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            const watermarkText = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} • ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+            const fontSize = Math.max(16, Math.floor(CANVAS_WIDTH / 35));
+            ctx.font = `bold ${fontSize}px 'Plus Jakarta Sans', Arial`;
+            ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+            ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 4; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2;
+            const textWidth = ctx.measureText(watermarkText).width, padding = fontSize * 0.5;
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.roundRect(CANVAS_WIDTH - textWidth - padding * 2, CANVAS_HEIGHT - fontSize - padding * 1.5, textWidth + padding * 2, fontSize + padding, 5);
+            ctx.fill();
+            ctx.fillStyle = 'white'; ctx.shadowBlur = 0;
+            ctx.fillText(watermarkText, CANVAS_WIDTH - padding, CANVAS_HEIGHT - padding);
+
+            Swal.fire({ title: 'Memproses Foto...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+
+            canvas.toBlob(blob => {
+                const timestamp = new Date().getTime();
+                const fileName = `canvas_${timestamp}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+                const file = new File([blob], fileName, { type: 'image/jpeg', lastModified: Date.now() });
+                if (!fileStorage[id]) fileStorage[id] = [];
+                fileStorage[id].push(file);
+                updatePreview(id);
+                saveDraft();
+                Swal.close();
+            }, 'image/jpeg', COMPRESSION_QUALITY);
+        }
+
+        // --- SISTEM AUTO-DRAFT (IndexedDB) ---
+        const DB_NAME = 'CeklistDraftDB'; const DB_VERSION = 1; const STORE_NAME = 'drafts';
+        function initDraftDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = () => reject("Draft Gagal Inisialisasi");
+                request.onsuccess = () => resolve(request.result);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME, { keyPath: "id" });
+                };
+            });
+        }
+
+        async function saveDraft() {
+            try {
+                const db = await initDraftDB();
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const dataToSave = {
+                    id: "current_draft", files: fileStorage, petugas: document.getElementById('petugasSelect').value,
+                    ruangan: document.getElementById('ruanganSelect').value, reportType: document.getElementById('reportType').value,
+                    timestamp: new Date().getTime()
+                };
+                tx.objectStore(STORE_NAME).put(dataToSave);
+            } catch (e) { console.warn("Simpan draft gagal", e); }
+        }
+
+        async function loadDraft() {
+            try {
+                const db = await initDraftDB();
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const request = tx.objectStore(STORE_NAME).get("current_draft");
+                request.onsuccess = () => {
+                    const draft = request.result;
+                    if (draft) {
+                        document.getElementById('petugasSelect').value = draft.petugas;
+                        document.getElementById('reportType').value = draft.reportType;
+                        const buttons = document.querySelectorAll('#reportTabs button');
+                        buttons.forEach(b => {
+                            b.classList.remove('btn-primary'); b.classList.add('btn-outline-primary');
+                            if (b.innerText.toLowerCase() === draft.reportType.toLowerCase()) {
+                                b.classList.add('btn-primary'); b.classList.remove('btn-outline-primary');
+                            }
+                        });
+                        updateLokasiOptions();
+                        setTimeout(() => {
+                            document.getElementById('ruanganSelect').value = draft.ruangan;
+                            renderChecklist();
+                            setTimeout(() => {
+                                fileStorage = draft.files || {};
+                                Object.keys(fileStorage).forEach(id => updatePreview(id));
+                                if (Object.keys(fileStorage).length > 0) {
+                                    Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Melanjutkan draf...', showConfirmButton: false, timer: 3000 });
+                                }
+                            }, 500);
+                        }, 500);
+                    }
+                };
+            } catch (e) { console.warn("Load draft gagal", e); }
+        }
+
+        async function clearDraft() {
+            const db = await initDraftDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            tx.objectStore(STORE_NAME).clear();
+        }
+
+        // Load config via Fetch API
+        window.onload = () => {
+            if (GAS_URL === 'MASUKKAN_URL_WEB_APP_GAS_ANDA_DI_SINI') {
+                Swal.fire('Instalasi Belum Selesai', 'Anda belum memasukkan URL Web App GAS ke file index.html', 'warning');
+                return;
+            }
+
+            fetch(GAS_URL)
+                .then(res => res.json())
+                .then(config => {
+                    appConfig = config;
+                    if (config.settings && config.settings.app_title) {
+                        document.querySelector('.app-header h2').innerHTML = `🏢 ${config.settings.app_title}`;
+                    }
+                    const petugasSelect = document.getElementById('petugasSelect');
+                    petugasSelect.innerHTML = '<option value="" selected disabled>-- Pilih Petugas --</option>';
+                    config.petugas.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.nama; opt.text = p.nama; petugasSelect.appendChild(opt);
+                    });
+                    loadDraft();
+                })
+                .catch(err => {
+                    Swal.fire('Error Connection', 'Gagal memuat API dari server. Pastikan URL Web App benar dan CORS aktif.', 'error');
+                });
+        };
+
+        function setReportType(type, btn) {
+            document.getElementById('reportType').value = type;
+            const buttons = document.querySelectorAll('#reportTabs button');
+            buttons.forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-outline-primary'); });
+            btn.classList.remove('btn-outline-primary'); btn.classList.add('btn-primary');
+            updateLokasiOptions(); renderChecklist(); saveDraft();
+        }
+
+        function updateLokasiOptions() {
+            if (!appConfig) return;
+            const selectedPetugas = document.getElementById('petugasSelect').value;
+            const ruanganSelector = document.getElementById('ruanganSelect');
+            ruanganSelector.innerHTML = '<option value="" selected disabled>-- Pilih Lokasi --</option>';
+
+            const lokasiTugas = appConfig.lokasi.filter(l => l.pic === selectedPetugas);
+            if (lokasiTugas.length > 0) {
+                lokasiTugas.forEach(loc => {
+                    const opt = document.createElement('option');
+                    opt.value = loc.nama; opt.text = loc.nama;
+                    ruanganSelector.appendChild(opt);
+                });
+            } else {
+                const opt = document.createElement('option'); opt.value = ""; opt.text = "Tidak ada lokasi untuk petugas ini"; opt.disabled = true; ruanganSelector.appendChild(opt);
+            }
+        }
+
+        document.getElementById('petugasSelect').addEventListener('change', () => { updateLokasiOptions(); renderChecklist(); saveDraft(); });
+        document.getElementById('ruanganSelect').addEventListener('change', () => { renderChecklist(); saveDraft(); });
+
+        function renderChecklist() {
+            const reportType = document.getElementById('reportType').value;
+            const ruanganName = document.getElementById('ruanganSelect').value;
+            const container = document.getElementById('checklistContainer');
+
+            if (!ruanganName) { container.innerHTML = ''; return; }
+            container.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"></div></div>';
+            fileStorage = {};
+
+            if (!appConfig) { setTimeout(renderChecklist, 500); return; }
+
+            const lokasiObj = appConfig.lokasi.find(l => l.nama === ruanganName);
+            const key = lokasiObj ? lokasiObj.kategori : ruanganName;
+            const sections = appConfig.checklist[reportType] ? appConfig.checklist[reportType][key] : null;
+
+            container.innerHTML = '';
+            if (!sections) { container.innerHTML = '<div class="alert alert-info py-2 m-3">Belum ada item pekerjaan untuk kategori ini.</div>'; return; }
+
+            for (const [title, items] of Object.entries(sections)) {
+                const card = document.createElement('div');
+                card.className = 'glass-card animate__animated animate__fadeIn';
+                card.innerHTML = `<div class="section-header"><span><i class="bi bi-check2-square me-2"></i>${title}</span></div><div class="section-body"></div>`;
+                const body = card.querySelector('.section-body');
+
+                items.forEach(item => {
+                    fileStorage[item.id] = [];
+                    const div = document.createElement('div');
+                    div.className = 'checklist-item';
+                    div.innerHTML = `
+            <label class="label-tugas">${item.label}</label>
+            <div class="upload-grid" style="grid-template-columns: 1fr;">
+              <button type="button" class="btn-upload" onclick="openCamera('${item.id}')">
+                <i class="bi bi-camera-fill"></i><span>Ambil Foto</span>
+              </button>
+            </div>
+            <div id="prev_${item.id}" class="preview-grid"></div>`;
+                    body.appendChild(div);
+                });
+                container.appendChild(card);
+            }
+        }
+
+        function updatePreview(id) {
+            const grid = document.getElementById(`prev_${id}`);
+            grid.innerHTML = "";
+            fileStorage[id].forEach((file, index) => {
+                const url = URL.createObjectURL(file);
+                const wrapper = document.createElement('div');
+                wrapper.className = 'preview-wrapper';
+                wrapper.innerHTML = `<img src="${url}" class="preview-img"><button type="button" class="btn-remove" onclick="removeFile('${id}', ${index})"><i class="bi bi-x"></i></button>`;
+                grid.appendChild(wrapper);
+            });
+        }
+
+        function removeFile(id, index) { fileStorage[id].splice(index, 1); updatePreview(id); saveDraft(); }
+
+        function showUploadProgress(current, total) {
+            const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+            Swal.fire({
+                title: '📤 Mengunggah Foto',
+                html: `
+              <div style="margin-bottom:10px; font-size:0.9rem; color:#64748b">Foto ke-<b>${current}</b> dari <b>${total}</b></div>
+              <div style="height:12px; background:#e2e8f0; border-radius:99px; overflow:hidden; margin-bottom:8px">
+                <div style="height:100%; width:${pct}%; background: linear-gradient(90deg,#2563eb,#06b6d4); border-radius:99px; transition:width 0.4s ease"></div>
+              </div>
+              <div style="font-size:1.1rem; font-weight:700; color:#2563eb">${pct}%</div>
+              <div style="font-size:0.75rem; color:#94a3b8; margin-top:6px"><b>Mohon jangan tutup halaman ini.</b></div>
+            `,
+                allowOutsideClick: false, showConfirmButton: false
+            });
+        }
+
+        async function handleFormSubmit(event, form) {
+            event.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+
+            let totalFiles = 0;
+            Object.keys(fileStorage).forEach(id => totalFiles += fileStorage[id].length);
+
+            if (totalFiles === 0) {
+                const confirm = await Swal.fire({ title: 'Tidak Ada Foto', text: 'Anda belum mengambil foto apapun. Tetap kirim laporan?', icon: 'question', showCancelButton: true, confirmButtonText: 'Ya, Kirim', confirmButtonColor: '#2563eb' });
+                if (!confirm.isConfirmed) { btn.disabled = false; return; }
+            }
+
+            const formData = { petugas: form.petugas.value, ruangan: form.ruangan.value, reportType: form.reportType.value };
+
+            let uploadedCount = 0;
+            try {
+                for (const id of Object.keys(fileStorage)) {
+                    if (fileStorage[id].length > 0) {
+                        const urls = [];
+                        for (let i = 0; i < fileStorage[id].length; i++) {
+                            uploadedCount++;
+                            showUploadProgress(uploadedCount, totalFiles);
+
+                            const file = fileStorage[id][i];
+                            const base64 = await new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+                                reader.readAsDataURL(file);
+                            });
+
+                            const response = await fetch(GAS_URL, {
+                                method: "POST",
+                                body: JSON.stringify({ action: "upload", base64: base64, fileName: file.name, reportType: formData.reportType, ruangan: formData.ruangan })
+                            });
+                            const result = await response.json();
+                            urls.push(result.url);
+                        }
+                        formData[`url_${id}`] = urls.join(", ");
+                    }
+                }
+
+                Swal.fire({ title: '💾 Finalisasi...', html: '<div style="color:#64748b">Menyimpan data ke GSheet...</div>', allowOutsideClick: false, showConfirmButton: false });
+
+                const response = await fetch(GAS_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "submit", formData: formData })
+                });
+                const res = await response.json();
+
+                btn.disabled = false;
+                if (res.status === 'success') {
+                    Swal.fire({ icon: 'success', title: 'Berhasil! 🎉', text: res.message, confirmButtonColor: '#2563eb' }).then(() => {
+                        clearDraft(); form.reset(); fileStorage = {}; document.getElementById('checklistContainer').innerHTML = ''; updateLokasiOptions();
+                    });
+                } else { Swal.fire('Gagal', res.message, 'error'); }
+
+            } catch (e) {
+                btn.disabled = false; Swal.fire('Error', 'Gagal proses, periksa koneksi internet: ' + e.message, 'error');
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
