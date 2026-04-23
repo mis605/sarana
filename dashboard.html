@@ -198,13 +198,16 @@
         </div>
 
         <input type="hidden" id="dashboardReportType" value="Harian">
-        
+
         <!-- Dashboard Tabs -->
         <div class="glass-card mb-3">
             <div class="d-flex p-2 gap-2" id="dashboardTabs">
-                <button type="button" class="btn btn-sm btn-primary flex-fill" onclick="setDashboardTab('Harian', this)">HARIAN</button>
-                <button type="button" class="btn btn-sm btn-outline-primary flex-fill" onclick="setDashboardTab('Mingguan', this)">MINGGUAN</button>
-                <button type="button" class="btn btn-sm btn-outline-primary flex-fill" onclick="setDashboardTab('Bulanan', this)">BULANAN</button>
+                <button type="button" class="btn btn-sm btn-primary flex-fill"
+                    onclick="setDashboardTab('Harian', this)">HARIAN</button>
+                <button type="button" class="btn btn-sm btn-outline-primary flex-fill"
+                    onclick="setDashboardTab('Mingguan', this)">MINGGUAN</button>
+                <button type="button" class="btn btn-sm btn-outline-primary flex-fill"
+                    onclick="setDashboardTab('Bulanan', this)">BULANAN</button>
             </div>
         </div>
 
@@ -213,11 +216,14 @@
             <div class="row g-2 align-items-end">
                 <div class="col-6 col-md-5">
                     <label class="form-label small fw-bold mb-1"><i class="bi bi-calendar-event me-1"></i>Mulai</label>
-                    <input type="date" id="filterStart" class="form-control" onchange="renderDashboard(globalDashboardData)">
+                    <input type="date" id="filterStart" class="form-control"
+                        onchange="renderDashboard(globalDashboardData)">
                 </div>
                 <div class="col-6 col-md-5">
-                    <label class="form-label small fw-bold mb-1"><i class="bi bi-calendar-check me-1"></i>Selesai</label>
-                    <input type="date" id="filterEnd" class="form-control" onchange="renderDashboard(globalDashboardData)">
+                    <label class="form-label small fw-bold mb-1"><i
+                            class="bi bi-calendar-check me-1"></i>Selesai</label>
+                    <input type="date" id="filterEnd" class="form-control"
+                        onchange="renderDashboard(globalDashboardData)">
                 </div>
                 <div class="col-12 col-md-2">
                     <button class="btn btn-outline-danger w-100 mt-2 mt-md-0" onclick="clearDateFilter()">
@@ -230,13 +236,16 @@
         <!-- Summary Stats -->
         <div class="row g-3 mb-4">
             <div class="col-6">
-                <div class="glass-card stat-card h-100" id="cardDone" style="cursor: pointer; border: 2px solid #198754; transition: 0.3s;" onclick="toggleView('done')">
+                <div class="glass-card stat-card h-100" id="cardDone"
+                    style="cursor: pointer; border: 2px solid #198754; transition: 0.3s;" onclick="toggleView('done')">
                     <div class="stat-label">Tasklist Done</div>
                     <div class="stat-value text-success" id="statDone">-</div>
                 </div>
             </div>
             <div class="col-6">
-                <div class="glass-card stat-card h-100" id="cardPending" style="cursor: pointer; border: 2px solid transparent; transition: 0.3s;" onclick="toggleView('pending')">
+                <div class="glass-card stat-card h-100" id="cardPending"
+                    style="cursor: pointer; border: 2px solid transparent; transition: 0.3s;"
+                    onclick="toggleView('pending')">
                     <div class="stat-label">Tasklist Pending</div>
                     <div class="stat-value text-danger" id="statPending">-</div>
                 </div>
@@ -256,7 +265,8 @@
         <div class="glass-card">
             <div class="section-header">
                 <span><i class="bi bi-list-ul me-2"></i>Riwayat Laporan Hari Ini</span>
-                <button class="btn btn-sm btn-outline-primary py-0" onclick="loadDashboardData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                <button class="btn btn-sm btn-outline-primary py-0" onclick="loadDashboardData()"><i
+                        class="bi bi-arrow-clockwise"></i> Refresh</button>
             </div>
             <div id="loadingState" class="p-5 text-center">
                 <div class="spinner-border text-primary" role="status"></div>
@@ -288,7 +298,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ⚠️ PASTIKAN URL API GAS INI SAMA SEPERTI DI INDEX.HTML
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyVLmibg1_19fs_PssRd2e1lHOgu863cFNKx98C824-VSGkGHSiMxyrMCWPIQASlbChXg/exec';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxVkOQUzLSsglhOoIzRaIQt_mGJrAckvHP7NlRK_ZNZfRPFyzL4JYek56rkpo_h37ATrg/exec';
 
         // Theme Toggle
         function toggleTheme() {
@@ -327,7 +337,7 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('filterStart').value = today;
             document.getElementById('filterEnd').value = today;
-            
+
             loadAppConfig();
         });
 
@@ -349,7 +359,7 @@
 
         function setDashboardTab(type, btn) {
             document.getElementById('dashboardReportType').value = type;
-            
+
             // Update UI Tabs
             const buttons = document.querySelectorAll('#dashboardTabs button');
             buttons.forEach(b => {
@@ -390,15 +400,15 @@
                 method: "POST",
                 body: JSON.stringify({ action: "dashboard" })
             })
-            .then(res => res.json())
-            .then(data => {
-                globalDashboardData = data;
-                renderDashboard(data);
-            })
-            .catch(err => {
-                loading.classList.add('d-none');
-                Swal.fire('Error', 'Gagal memuat data riwayat', 'error');
-            });
+                .then(res => res.json())
+                .then(data => {
+                    globalDashboardData = data;
+                    renderDashboard(data);
+                })
+                .catch(err => {
+                    loading.classList.add('d-none');
+                    Swal.fire('Error', 'Gagal memuat data riwayat', 'error');
+                });
         }
 
         function renderDashboard(data) {
@@ -411,7 +421,7 @@
             const startDate = document.getElementById('filterStart').value;
             const endDate = document.getElementById('filterEnd').value;
             const historyTitle = document.querySelector('.section-header span');
-            
+
             loading.classList.add('d-none');
             list.innerHTML = '';
 
@@ -431,16 +441,16 @@
                 filteredData = filteredData.filter(row => {
                     const [d, m, y] = row.tanggal.split('/');
                     const rowDate = new Date(y, m - 1, d);
-                    rowDate.setHours(0,0,0,0);
+                    rowDate.setHours(0, 0, 0, 0);
 
                     if (startDate) {
                         const start = new Date(startDate);
-                        start.setHours(0,0,0,0);
+                        start.setHours(0, 0, 0, 0);
                         if (rowDate < start) return false;
                     }
                     if (endDate) {
                         const end = new Date(endDate);
-                        end.setHours(23,59,59,999);
+                        end.setHours(23, 59, 59, 999);
                         if (rowDate > end) return false;
                     }
                     return true;
@@ -450,11 +460,11 @@
             // 3. Update Title UI
             if (activeType === 'Harian') {
                 if (!startDate && !endDate) {
-                     historyTitle.innerHTML = currentView === 'done' ? `<i class="bi bi-list-ul me-2"></i>Semua Riwayat Harian` : `<i class="bi bi-x-circle me-2"></i>Tugas Pending`;
+                    historyTitle.innerHTML = currentView === 'done' ? `<i class="bi bi-list-ul me-2"></i>Semua Riwayat Harian` : `<i class="bi bi-x-circle me-2"></i>Tugas Pending`;
                 } else if (startDate === endDate && startDate !== '') {
-                     historyTitle.innerHTML = currentView === 'done' ? `<i class="bi bi-list-ul me-2"></i>Laporan Hari ${startDate.split('-').reverse().join('/')}` : `<i class="bi bi-x-circle me-2"></i>Pending: ${startDate.split('-').reverse().join('/')}`;
+                    historyTitle.innerHTML = currentView === 'done' ? `<i class="bi bi-list-ul me-2"></i>Laporan Hari ${startDate.split('-').reverse().join('/')}` : `<i class="bi bi-x-circle me-2"></i>Pending: ${startDate.split('-').reverse().join('/')}`;
                 } else {
-                     historyTitle.innerHTML = currentView === 'done' ? `<i class="bi bi-list-ul me-2"></i>Riwayat Harian (Filter)` : `<i class="bi bi-x-circle me-2"></i>Tugas Pending (Filter)`;
+                    historyTitle.innerHTML = currentView === 'done' ? `<i class="bi bi-list-ul me-2"></i>Riwayat Harian (Filter)` : `<i class="bi bi-x-circle me-2"></i>Tugas Pending (Filter)`;
                 }
             } else {
                 historyTitle.innerHTML = currentView === 'done' ? `<i class="bi bi-list-ul me-2"></i>Riwayat ${activeType}` : `<i class="bi bi-x-circle me-2"></i>Pending ${activeType}`;
@@ -481,7 +491,7 @@
             expectedTasks.forEach(task => {
                 // Cari apakah sudah dikerjakan di rentang waktu/filter ini
                 const isDone = filteredData.find(row => row.petugas === task.petugas && row.ruangan === task.ruangan);
-                
+
                 if (isDone) {
                     if (statsPerPIC[task.petugas]) statsPerPIC[task.petugas].done++;
                 } else {
@@ -497,7 +507,7 @@
             // Render Progres PIC Dinamis ke HTML
             const statProgressPic = document.getElementById('statProgressPic');
             statProgressPic.innerHTML = '';
-            
+
             const petugasNames = Object.keys(statsPerPIC);
             petugasNames.forEach((name, idx) => {
                 const stats = statsPerPIC[name];
@@ -505,7 +515,7 @@
 
                 const prog = Math.round((stats.done / stats.target) * 100);
                 const borderClass = idx < petugasNames.length - 1 ? 'border-end' : '';
-                
+
                 const col = document.createElement('div');
                 col.className = `col-6 ${borderClass}`;
                 col.innerHTML = `
@@ -546,7 +556,7 @@
                     });
 
                     const reportType = row.jenis_laporan || row.reporttype || 'Harian';
-                    
+
                     let rawProgress = row.progress !== undefined ? row.progress : 0;
                     let displayProgress = "";
                     let progressVal = 0;
@@ -603,9 +613,9 @@
                 }
 
                 pendingTasks.forEach(task => {
-                   const item = document.createElement('div');
-                   item.className = 'history-item animate__animated animate__fadeIn opacity-75';
-                   item.innerHTML = `
+                    const item = document.createElement('div');
+                    item.className = 'history-item animate__animated animate__fadeIn opacity-75';
+                    item.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center">
                       <div>
                         <h6 class="mb-1 fw-bold text-danger"><i class="bi bi-x-circle me-1"></i> Belum Dikerjakan</h6>
@@ -615,7 +625,7 @@
                       <span class="badge bg-secondary">Pending</span>
                     </div>
                    `;
-                   list.appendChild(item);
+                    list.appendChild(item);
                 });
             }
         }
