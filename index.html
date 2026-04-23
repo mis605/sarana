@@ -571,7 +571,7 @@
                     div.innerHTML = `
             <label class="label-tugas">${item.label}</label>
             <div class="upload-grid" style="grid-template-columns: 1fr;">
-              <button type="button" class="btn-upload" onclick="openCamera('${item.id}')">
+              <button type="button" class="btn-upload" onclick="openCamera('${item.id}')" id="btn_cam_${item.id}">
                 <i class="bi bi-camera-fill"></i><span>Ambil Foto</span>
               </button>
             </div>
@@ -580,6 +580,27 @@
                 });
                 container.appendChild(card);
             }
+
+            // Fetch progress hari ini untuk mendisable checklist yang sudah selesai
+            const selectedPetugas = document.getElementById('petugasSelect').value;
+            fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "getProgress", petugas: selectedPetugas, ruangan: ruanganName, reportType: reportType })
+            }).then(res => res.json()).then(filledIds => {
+                if(filledIds && filledIds.length > 0) {
+                    filledIds.forEach(id => {
+                        const btn = document.getElementById(`btn_cam_${id}`);
+                        if (btn) {
+                            btn.disabled = true;
+                            btn.innerHTML = '<i class="bi bi-check-circle-fill"></i><span>Sudah Selesai</span>';
+                            btn.classList.remove('btn-upload');
+                            btn.classList.add('btn-success');
+                            btn.style.opacity = '0.7';
+                            btn.style.cursor = 'not-allowed';
+                        }
+                    });
+                }
+            }).catch(e => console.warn("Failed to get progress", e));
         }
 
         function updatePreview(id) {
