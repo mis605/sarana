@@ -724,6 +724,9 @@
 
         async function handleFormSubmit(event, form) {
             event.preventDefault();
+            if (window.isSubmittingForm) return;
+            window.isSubmittingForm = true;
+
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
 
@@ -734,7 +737,7 @@
 
             if (totalFiles === 0) {
                 const confirm = await Swal.fire({ title: 'Tidak Ada Foto', text: 'Anda belum mengambil foto apapun. Tetap kirim laporan?', icon: 'question', showCancelButton: true, confirmButtonText: 'Ya, Kirim', confirmButtonColor: '#2563eb' });
-                if (!confirm.isConfirmed) { btn.disabled = false; return; }
+                if (!confirm.isConfirmed) { btn.disabled = false; window.isSubmittingForm = false; return; }
             }
 
             const formData = { petugas: form.petugas.value, ruangan: form.ruangan.value, reportType: form.reportType.value };
@@ -771,20 +774,25 @@
 
                 Swal.fire({ title: '💾 Finalisasi...', html: '<div style="color:#64748b">Menyimpan data ke GSheet...</div>', allowOutsideClick: false, showConfirmButton: false });
 
+                // Retries = 0 untuk action submit agar tidak terjadi duplikasi simpan di GSheet
                 const res = await safeFetchJson(GAS_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "submit", formData: formData })
-                });
+                }, 0);
 
                 btn.disabled = false;
-                if (res.status === 'success') {
+                window.isSubmittingForm = false;
+
+                if (res.status === 'success' || res.settings || (res.message && res.message.includes('berhasil'))) {
                     Swal.fire({ icon: 'success', title: 'Berhasil! 🎉', text: res.message || 'Laporan tersimpan.', confirmButtonColor: '#2563eb' }).then(() => {
                         clearDraft(); form.reset(); fileStorage = {}; document.getElementById('checklistContainer').innerHTML = ''; updateLokasiOptions();
                     });
                 } else { Swal.fire('Gagal', res.message || 'Gagal menyimpan laporan.', 'error'); }
 
             } catch (e) {
-                btn.disabled = false; Swal.fire('Gagal Kirim Laporan', e.message || 'Periksa koneksi internet Anda.', 'error');
+                btn.disabled = false;
+                window.isSubmittingForm = false;
+                Swal.fire('Gagal Kirim Laporan', e.message || 'Periksa koneksi internet Anda.', 'error');
             }
         }
     </script>
