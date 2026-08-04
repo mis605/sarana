@@ -354,12 +354,12 @@
             return trimmed;
         }
 
-        // Helper untuk fetch JSON aman yang menangkap error HTML dari Google Apps Script dengan Retry Otomatis
+        // Helper untuk fetch JSON aman dengan Retry Otomatis
         async function safeFetchJson(url, options = {}, retries = 2) {
             let lastError = null;
             for (let attempt = 0; attempt <= retries; attempt++) {
                 try {
-                    const fetchOptions = { ...options };
+                    const fetchOptions = { redirect: 'follow', ...options };
                     if (fetchOptions.method === 'POST' && typeof fetchOptions.body === 'string') {
                         fetchOptions.headers = fetchOptions.headers || {};
                         if (!fetchOptions.headers['Content-Type']) {
@@ -371,23 +371,20 @@
                     try {
                         return JSON.parse(text);
                     } catch (jsonErr) {
-                        console.error("Non-JSON response from server:", text);
+                        console.warn("Server response text:", text);
                         if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                            if (text.includes('ServiceLogin') || text.includes('accounts.google.com')) {
+                                throw new Error("Akses Web App Apps Script ditolak. Pastikan 'Who has access' di-set ke 'Anyone'.");
+                            }
                             const errMatch = text.match(/class="errorMessage"[^>]*>(.*?)<\/p>/i) || text.match(/<body[^>]*>(.*?)<\/body>/i);
                             const cleanHtmlMsg = errMatch ? errMatch[1].replace(/<[^>]+>/g, '').trim() : '';
-
-                            if (text.includes('Halaman Tidak Ditemukan') || text.includes('tidak dapat membuka file')) {
-                                throw new Error("Google Apps Script di server belum memiliki doPost() atau belum di-update ke Versi Baru (New Version). Pastikan salin kode code_github.gs ke Apps Script lalu klik Deploy > Manage Deployments > Edit (ikon pensil) > Version: NEW VERSION > Deploy.");
-                            } else if (text.includes('ServiceLogin') || text.includes('accounts.google.com')) {
-                                throw new Error("Akses Web App Apps Script ditolak. Ubah Siapa yang Memiliki Akses (Who has access) menjadi 'Anyone' (Siapa Saja).");
-                            }
-                            throw new Error(cleanHtmlMsg || "Server Apps Script mengembalikan halaman HTML/Error bukannya JSON. Periksa log eksekusi Apps Script Anda.");
+                            throw new Error(cleanHtmlMsg || "Kendala koneksi respons server Apps Script. Silakan coba klik Refresh.");
                         }
-                        throw new Error("Format respons server tidak valid: " + jsonErr.message);
+                        throw new Error("Format respons dari server tidak sesuai: " + jsonErr.message);
                     }
                 } catch (err) {
                     lastError = err;
-                    if (attempt < retries && !err.message.includes('New Version') && !err.message.includes('Anyone')) {
+                    if (attempt < retries && !err.message.includes('Anyone')) {
                         console.warn(`Retry attempt ${attempt + 1}/${retries}...`);
                         await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
                     } else {
