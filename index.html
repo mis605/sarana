@@ -517,12 +517,15 @@
                     } catch (jsonErr) {
                         console.error("Non-JSON response from server:", text);
                         if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                            const errMatch = text.match(/class="errorMessage"[^>]*>(.*?)<\/p>/i) || text.match(/<body[^>]*>(.*?)<\/body>/i);
+                            const cleanHtmlMsg = errMatch ? errMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+
                             if (text.includes('Halaman Tidak Ditemukan') || text.includes('tidak dapat membuka file')) {
                                 throw new Error("Google Apps Script di server belum memiliki doPost() atau belum di-update ke Versi Baru (New Version). Pastikan salin kode code_github.gs ke Apps Script lalu klik Deploy > Manage Deployments > Edit (ikon pensil) > Version: NEW VERSION > Deploy.");
                             } else if (text.includes('ServiceLogin') || text.includes('accounts.google.com')) {
                                 throw new Error("Akses Web App Apps Script ditolak. Ubah Siapa yang Memiliki Akses (Who has access) menjadi 'Anyone' (Siapa Saja).");
                             }
-                            throw new Error("Server Apps Script mengembalikan halaman HTML/Error bukannya JSON. Periksa log eksekusi Apps Script Anda.");
+                            throw new Error(cleanHtmlMsg || "Server Apps Script mengembalikan halaman HTML/Error bukannya JSON. Periksa log eksekusi Apps Script Anda.");
                         }
                         throw new Error("Format respons server tidak valid: " + jsonErr.message);
                     }
@@ -612,8 +615,12 @@
             if (!appConfig) { setTimeout(() => renderChecklist(preservedFiles), 300); return; }
 
             const lokasiObj = appConfig.lokasi.find(l => l.nama === ruanganName);
-            const key = lokasiObj ? lokasiObj.kategori : ruanganName;
-            const sections = appConfig.checklist[reportType] ? appConfig.checklist[reportType][key] : null;
+            let key = lokasiObj ? lokasiObj.kategori : ruanganName;
+            let sections = appConfig.checklist[reportType] ? appConfig.checklist[reportType][key] : null;
+            if (!sections && key && appConfig.checklist[reportType]) {
+                const altKey = key.replace(/ /g, '_');
+                sections = appConfig.checklist[reportType][altKey];
+            }
 
             container.innerHTML = '';
             if (!sections) { container.innerHTML = '<div class="alert alert-info py-2 m-3">Belum ada item pekerjaan untuk kategori ini.</div>'; return; }
