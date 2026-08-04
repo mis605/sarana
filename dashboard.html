@@ -300,6 +300,101 @@
         // ⚠️ PASTIKAN URL API GAS INI SAMA SEPERTI DI INDEX.HTML
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbxVkOQUzLSsglhOoIzRaIQt_mGJrAckvHP7NlRK_ZNZfRPFyzL4JYek56rkpo_h37ATrg/exec';
 
+        // Helper untuk mendapatkan tanggal lokal perangkat format YYYY-MM-DD
+        function getLocalDateISO() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Helper parser tanggal yang robust (support DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY, dengan/tanpa waktu)
+        function parseCustomDate(dateStr) {
+            if (!dateStr) return null;
+            if (dateStr instanceof Date) return isNaN(dateStr.getTime()) ? null : dateStr;
+            const str = String(dateStr).trim();
+            if (!str) return null;
+
+            // Format YYYY-MM-DD atau YYYY/MM/DD
+            if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(str)) {
+                const parts = str.split(/[-/]/);
+                const dayStr = parts[2].split(' ')[0];
+                return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(dayStr));
+            }
+            // Format DD/MM/YYYY atau DD-MM-YYYY
+            const match = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+            if (match) {
+                return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
+            }
+            const d = new Date(str);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        // Helper ekstrak URL thumbnail Google Drive secara akurat
+        function getGoogleDriveThumbnail(url) {
+            if (!url || typeof url !== 'string') return '';
+            const trimmed = url.trim();
+            if (!trimmed) return '';
+
+            let fileId = null;
+            const idMatch = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (idMatch) {
+                fileId = idMatch[1];
+            } else {
+                const dMatch = trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                if (dMatch) {
+                    fileId = dMatch[1];
+                }
+            }
+
+            if (fileId) {
+                return `https://drive.google.com/thumbnail?id=${fileId}&sz=w500`;
+            }
+            return trimmed;
+        }
+
+        // Helper untuk fetch JSON aman yang menangkap error HTML dari Google Apps Script dengan Retry Otomatis
+        async function safeFetchJson(url, options = {}, retries = 2) {
+            let lastError = null;
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                    const fetchOptions = { ...options };
+                    if (fetchOptions.method === 'POST' && typeof fetchOptions.body === 'string') {
+                        fetchOptions.headers = fetchOptions.headers || {};
+                        if (!fetchOptions.headers['Content-Type']) {
+                            fetchOptions.headers['Content-Type'] = 'text/plain;charset=utf-8';
+                        }
+                    }
+                    const response = await fetch(url, fetchOptions);
+                    const text = await response.text();
+                    try {
+                        return JSON.parse(text);
+                    } catch (jsonErr) {
+                        console.error("Non-JSON response from server:", text);
+                        if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                            if (text.includes('Halaman Tidak Ditemukan') || text.includes('tidak dapat membuka file')) {
+                                throw new Error("Google Apps Script di server belum memiliki doPost() atau belum di-update ke Versi Baru (New Version). Pastikan salin kode code_github.gs ke Apps Script lalu klik Deploy > Manage Deployments > Edit (ikon pensil) > Version: NEW VERSION > Deploy.");
+                            } else if (text.includes('ServiceLogin') || text.includes('accounts.google.com')) {
+                                throw new Error("Akses Web App Apps Script ditolak. Ubah Siapa yang Memiliki Akses (Who has access) menjadi 'Anyone' (Siapa Saja).");
+                            }
+                            throw new Error("Server Apps Script mengembalikan halaman HTML/Error bukannya JSON. Periksa log eksekusi Apps Script Anda.");
+                        }
+                        throw new Error("Format respons server tidak valid: " + jsonErr.message);
+                    }
+                } catch (err) {
+                    lastError = err;
+                    if (attempt < retries && !err.message.includes('New Version') && !err.message.includes('Anyone')) {
+                        console.warn(`Retry attempt ${attempt + 1}/${retries}...`);
+                        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                    } else {
+                        throw err;
+                    }
+                }
+            }
+            throw lastError;
+        }
+
         // Theme Toggle
         function toggleTheme() {
             const body = document.body;
@@ -333,8 +428,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Set default filter to today for Harian tab
-            const today = new Date().toISOString().split('T')[0];
+            // Set default filter to today using local timezone
+            const today = getLocalDateISO();
             document.getElementById('filterStart').value = today;
             document.getElementById('filterEnd').value = today;
 
@@ -342,18 +437,17 @@
         });
 
         function loadAppConfig() {
-            fetch(GAS_URL)
-                .then(res => res.json())
+            safeFetchJson(GAS_URL)
                 .then(config => {
                     appConfig = config;
                     // Update App Title jika ada di settings
-                    if (config.settings && config.settings.app_title) {
+                    if (config && config.settings && config.settings.app_title) {
                         document.querySelector('.app-header h2').innerHTML = `📊 ${config.settings.app_title} Dashboard`;
                     }
                     loadDashboardData();
                 })
                 .catch(err => {
-                    Swal.fire('Error', 'Gagal memuat konfigurasi API', 'error');
+                    Swal.fire('Error', err.message || 'Gagal memuat konfigurasi API', 'error');
                 });
         }
 
@@ -371,7 +465,7 @@
 
             // Logic Default: jika ke Harian, balikkan ke hari ini. Jika ke Mingguan/Bulanan, kosongkan filter agar lihat semua.
             if (type === 'Harian') {
-                const today = new Date().toISOString().split('T')[0];
+                const today = getLocalDateISO();
                 document.getElementById('filterStart').value = today;
                 document.getElementById('filterEnd').value = today;
             } else {
@@ -396,18 +490,22 @@
             list.innerHTML = '';
             empty.classList.add('d-none');
 
-            fetch(GAS_URL, {
+            safeFetchJson(GAS_URL, {
                 method: "POST",
                 body: JSON.stringify({ action: "dashboard" })
             })
-                .then(res => res.json())
                 .then(data => {
-                    globalDashboardData = data;
-                    renderDashboard(data);
+                    if (!Array.isArray(data)) {
+                        console.warn("Invalid data structure from API:", data);
+                        globalDashboardData = [];
+                    } else {
+                        globalDashboardData = data;
+                    }
+                    renderDashboard(globalDashboardData);
                 })
                 .catch(err => {
                     loading.classList.add('d-none');
-                    Swal.fire('Error', 'Gagal memuat data riwayat', 'error');
+                    Swal.fire('Error', err.message || 'Gagal memuat data riwayat', 'error');
                 });
         }
 
@@ -425,7 +523,7 @@
             loading.classList.add('d-none');
             list.innerHTML = '';
 
-            if (!data || data.length === 0) {
+            if (!Array.isArray(data) || data.length === 0) {
                 empty.classList.remove('d-none');
                 return;
             }
@@ -436,22 +534,26 @@
                 return rowType.toLowerCase() === activeType.toLowerCase();
             });
 
-            // 2. Filter berdasarkan Range Tanggal
+            // 2. Filter berdasarkan Range Tanggal (dengan parser tanggal robust)
             if (startDate || endDate) {
                 filteredData = filteredData.filter(row => {
-                    const [d, m, y] = row.tanggal.split('/');
-                    const rowDate = new Date(y, m - 1, d);
+                    const rowDate = parseCustomDate(row.tanggal);
+                    if (!rowDate) return true; // Jika tanggal tidak valid, jangan difilter keluar
                     rowDate.setHours(0, 0, 0, 0);
 
                     if (startDate) {
-                        const start = new Date(startDate);
-                        start.setHours(0, 0, 0, 0);
-                        if (rowDate < start) return false;
+                        const start = parseCustomDate(startDate);
+                        if (start) {
+                            start.setHours(0, 0, 0, 0);
+                            if (rowDate < start) return false;
+                        }
                     }
                     if (endDate) {
-                        const end = new Date(endDate);
-                        end.setHours(23, 59, 59, 999);
-                        if (rowDate > end) return false;
+                        const end = parseCustomDate(endDate);
+                        if (end) {
+                            end.setHours(23, 59, 59, 999);
+                            if (rowDate > end) return false;
+                        }
                     }
                     return true;
                 });
@@ -471,15 +573,17 @@
             }
 
             // 4. Hitung Tasklist Done, Pending, dan Progress PIC Dinamis
-            const expectedTasks = appConfig.lokasi.map(l => ({ petugas: l.pic, ruangan: l.nama }));
+            const expectedTasks = appConfig.lokasi ? appConfig.lokasi.map(l => ({ petugas: l.pic, ruangan: l.nama })) : [];
 
             let pendingTasks = [];
             let statsPerPIC = {};
 
             // Inisialisasi stats untuk semua petugas dari appConfig
-            appConfig.petugas.forEach(p => {
-                statsPerPIC[p.nama] = { done: 0, target: 0 };
-            });
+            if (appConfig.petugas && Array.isArray(appConfig.petugas)) {
+                appConfig.petugas.forEach(p => {
+                    statsPerPIC[p.nama] = { done: 0, target: 0 };
+                });
+            }
 
             // Hitung Target Per PIC
             expectedTasks.forEach(task => {
@@ -489,8 +593,8 @@
             });
 
             expectedTasks.forEach(task => {
-                // Cari apakah sudah dikerjakan di rentang waktu/filter ini
-                const isDone = filteredData.find(row => row.petugas === task.petugas && row.ruangan === task.ruangan);
+                // Cari apakah lokasi/ruangan ini sudah dikerjakan oleh siapapun
+                const isDone = filteredData.find(row => row.ruangan === task.ruangan);
 
                 if (isDone) {
                     if (statsPerPIC[task.petugas]) statsPerPIC[task.petugas].done++;
@@ -514,13 +618,13 @@
                 if (stats.target === 0) return; // Skip jika petugas tidak ada penugasan lokasi
 
                 const prog = Math.round((stats.done / stats.target) * 100);
-                const borderClass = idx < petugasNames.length - 1 ? 'border-end' : '';
-
                 const col = document.createElement('div');
-                col.className = `col-6 ${borderClass}`;
+                col.className = `col-6 col-sm-4 col-md-3 p-2`;
                 col.innerHTML = `
-                    <small class="d-block text-muted text-truncate" title="${name}">${name.split(' ')[0]}</small>
-                    <span class="fs-5 fw-bold ${prog === 100 ? 'text-success' : 'text-warning'}">${prog}%</span>
+                    <div class="border rounded p-2 text-center h-100">
+                        <small class="d-block text-muted text-truncate" title="${name}">${name.split(' ')[0]}</small>
+                        <span class="fs-5 fw-bold ${prog === 100 ? 'text-success' : 'text-warning'}">${prog}%</span>
+                    </div>
                 `;
                 statProgressPic.appendChild(col);
             });
@@ -544,12 +648,12 @@
                     let images = [];
                     Object.keys(row).forEach(key => {
                         const val = row[key];
-                        if (typeof val === 'string' && val.includes('drive.google.com')) {
+                        if (typeof val === 'string' && (val.includes('drive.google.com') || val.includes('googleusercontent.com') || val.startsWith('http'))) {
                             const links = val.split(',').map(s => s.trim());
                             links.forEach(link => {
                                 if (link) {
-                                    let cleanLink = link.replace('uc?id=', 'thumbnail?id=') + (link.includes('sz=') ? '' : '&sz=w500');
-                                    images.push(cleanLink);
+                                    let cleanLink = getGoogleDriveThumbnail(link);
+                                    if (cleanLink) images.push(cleanLink);
                                 }
                             });
                         }
@@ -557,15 +661,15 @@
 
                     const reportType = row.jenis_laporan || row.reporttype || 'Harian';
 
-                    let rawProgress = row.progress !== undefined ? row.progress : 0;
+                    let rawProgress = row.progress !== undefined ? row.progress : 1;
                     let displayProgress = "";
-                    let progressVal = 0;
+                    let progressVal = 100;
 
                     if (typeof rawProgress === 'number') {
                         progressVal = rawProgress <= 1 ? Math.round(rawProgress * 100) : Math.round(rawProgress);
                         displayProgress = progressVal + "%";
-                    } else {
-                        progressVal = parseInt(rawProgress) || 0;
+                    } else if (typeof rawProgress === 'string') {
+                        progressVal = parseInt(rawProgress) || 100;
                         displayProgress = rawProgress.includes('%') ? rawProgress : rawProgress + "%";
                     }
 
@@ -576,6 +680,8 @@
                         ? images.map(img => `<img src="${img}" class="img-thumbnail-custom" onclick="viewImage('${img}')" onerror="this.style.display='none'">`).join('')
                         : '<small class="text-muted italic">Tidak ada foto</small>';
 
+                    const timeStampText = (row.timestamp || '') + (row.timestamp && row.tanggal ? ' - ' : '') + (row.tanggal || '');
+
                     item.innerHTML = `
                 <div class="d-flex justify-content-between align-items-start mb-2">
                   <div>
@@ -584,7 +690,7 @@
                       <span class="badge-lokasi d-inline-block">${row.ruangan || 'Unknown'}</span>
                     </div>
                     <h6 class="mb-0 fw-bold">${row.petugas || 'Anonim'}</h6>
-                    <small class="text-muted"><i class="bi bi-clock me-1"></i>${row.timestamp} - ${row.tanggal}</small>
+                    <small class="text-muted"><i class="bi bi-clock me-1"></i>${timeStampText || 'Tanpa Waktu'}</small>
                   </div>
                   <div class="text-end">
                      <span class="badge ${progressClass} border rounded-pill" style="font-size: 0.7rem;">${progressVal >= 100 ? 'Selesai' : 'Progress: ' + displayProgress}</span>
@@ -619,8 +725,8 @@
                     <div class="d-flex justify-content-between align-items-center">
                       <div>
                         <h6 class="mb-1 fw-bold text-danger"><i class="bi bi-x-circle me-1"></i> Belum Dikerjakan</h6>
-                        <small class="text-muted d-block"><i class="bi bi-person me-2"></i>${task.petugas}</small>
-                        <small class="text-muted d-block mt-1"><i class="bi bi-geo-alt me-2"></i>${task.ruangan}</small>
+                        <small class="text-muted d-block"><i class="bi bi-person me-2"></i>PIC: ${task.petugas}</small>
+                        <small class="text-muted d-block mt-1"><i class="bi bi-geo-alt me-2"></i>Lokasi: ${task.ruangan}</small>
                       </div>
                       <span class="badge bg-secondary">Pending</span>
                     </div>

@@ -257,14 +257,14 @@
                 <div class="p-3">
                     <div class="mb-3">
                         <label class="form-label small fw-bold">👤 Nama Petugas</label>
-                        <select class="form-select" name="petugas" id="petugasSelect" onchange="updateLokasiOptions()"
+                        <select class="form-select" name="petugas" id="petugasSelect"
                             required>
                             <option value="" selected disabled>-- Memuat Daftar Petugas... --</option>
                         </select>
                     </div>
                     <div class="mb-0">
                         <label class="form-label small fw-bold">📍 Lokasi Penugasan</label>
-                        <select class="form-select" name="ruangan" id="ruanganSelect" onchange="renderChecklist()"
+                        <select class="form-select" name="ruangan" id="ruanganSelect"
                             required>
                             <option value="" selected disabled>-- Pilih Petugas Dahulu --</option>
                         </select>
@@ -330,6 +330,7 @@
         // ======= KAMERA CANVAS =======
         let activeCameraItemId = null;
         let cameraStream = null;
+        let createdBlobUrls = {};
 
         function openCamera(itemId) {
             activeCameraItemId = itemId;
@@ -351,9 +352,13 @@
 
         function closeCamera() {
             if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
-            document.getElementById('cameraModal').style.display = 'none';
+            const modal = document.getElementById('cameraModal');
+            if (modal) modal.style.display = 'none';
             activeCameraItemId = null;
         }
+
+        window.addEventListener('beforeunload', closeCamera);
+        window.addEventListener('pagehide', closeCamera);
 
         async function capturePhoto() {
             if (!activeCameraItemId) return;
@@ -369,7 +374,7 @@
             canvas.width = CANVAS_WIDTH; canvas.height = CANVAS_HEIGHT;
             const ctx = canvas.getContext('2d');
 
-            const vw = video.videoWidth, vh = video.videoHeight;
+            const vw = video.videoWidth || CANVAS_WIDTH, vh = video.videoHeight || CANVAS_HEIGHT;
             let sx = 0, sy = 0, sw = vw, sh = vh;
             const targetRatio = CANVAS_WIDTH / CANVAS_HEIGHT, videoRatio = vw / vh;
             if (videoRatio > targetRatio) { sw = Math.round(vh * targetRatio); sx = Math.round((vw - sw) / 2); }
@@ -387,12 +392,22 @@
             ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 4; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2;
             const textWidth = ctx.measureText(watermarkText).width, padding = fontSize * 0.5;
             ctx.fillStyle = 'rgba(0,0,0,0.4)';
-            ctx.roundRect(CANVAS_WIDTH - textWidth - padding * 2, CANVAS_HEIGHT - fontSize - padding * 1.5, textWidth + padding * 2, fontSize + padding, 5);
+            
+            // Fallback jika ctx.roundRect tidak didukung di browser/webview lama
+            if (typeof ctx.roundRect === 'function') {
+                ctx.roundRect(CANVAS_WIDTH - textWidth - padding * 2, CANVAS_HEIGHT - fontSize - padding * 1.5, textWidth + padding * 2, fontSize + padding, 5);
+            } else {
+                ctx.fillRect(CANVAS_WIDTH - textWidth - padding * 2, CANVAS_HEIGHT - fontSize - padding * 1.5, textWidth + padding * 2, fontSize + padding);
+            }
             ctx.fill();
             ctx.fillStyle = 'white'; ctx.shadowBlur = 0;
             ctx.fillText(watermarkText, CANVAS_WIDTH - padding, CANVAS_HEIGHT - padding);
 
             canvas.toBlob(blob => {
+                if (!blob) {
+                    Swal.fire('Error', 'Gagal memproses foto dari kamera', 'error');
+                    return;
+                }
                 const timestamp = new Date().getTime();
                 const fileName = `canvas_${timestamp}_${Math.random().toString(36).substr(2, 9)}.jpg`;
                 const file = new File([blob], fileName, { type: 'image/jpeg', lastModified: Date.now() });
@@ -451,37 +466,77 @@
                 const request = tx.objectStore(STORE_NAME).get("current_draft");
                 request.onsuccess = () => {
                     const draft = request.result;
-                    if (draft) {
+                    if (draft && draft.petugas) {
                         document.getElementById('petugasSelect').value = draft.petugas;
-                        document.getElementById('reportType').value = draft.reportType;
+                        document.getElementById('reportType').value = draft.reportType || 'Harian';
                         const buttons = document.querySelectorAll('#reportTabs button');
                         buttons.forEach(b => {
                             b.classList.remove('btn-primary'); b.classList.add('btn-outline-primary');
-                            if (b.innerText.toLowerCase() === draft.reportType.toLowerCase()) {
+                            if (b.innerText.toLowerCase() === (draft.reportType || 'Harian').toLowerCase()) {
                                 b.classList.add('btn-primary'); b.classList.remove('btn-outline-primary');
                             }
                         });
                         updateLokasiOptions();
-                        setTimeout(() => {
+                        if (draft.ruangan) {
                             document.getElementById('ruanganSelect').value = draft.ruangan;
-                            renderChecklist();
-                            setTimeout(() => {
-                                fileStorage = draft.files || {};
-                                Object.keys(fileStorage).forEach(id => updatePreview(id));
-                                if (Object.keys(fileStorage).length > 0) {
-                                    Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Melanjutkan draf...', showConfirmButton: false, timer: 3000 });
-                                }
-                            }, 500);
-                        }, 500);
+                            const restoredFiles = draft.files || {};
+                            renderChecklist(restoredFiles);
+                            if (Object.keys(restoredFiles).some(k => restoredFiles[k] && restoredFiles[k].length > 0)) {
+                                Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Melanjutkan draf...', showConfirmButton: false, timer: 3000 });
+                            }
+                        }
                     }
                 };
             } catch (e) { console.warn("Load draft gagal", e); }
         }
 
         async function clearDraft() {
-            const db = await initDraftDB();
-            const tx = db.transaction(STORE_NAME, 'readwrite');
-            tx.objectStore(STORE_NAME).clear();
+            try {
+                const db = await initDraftDB();
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).clear();
+            } catch (e) { console.warn("Clear draft gagal", e); }
+        }
+
+        // Helper untuk fetch JSON aman yang menangkap error HTML dari Google Apps Script dengan Retry Otomatis
+        async function safeFetchJson(url, options = {}, retries = 2) {
+            let lastError = null;
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                    const fetchOptions = { ...options };
+                    if (fetchOptions.method === 'POST' && typeof fetchOptions.body === 'string') {
+                        fetchOptions.headers = fetchOptions.headers || {};
+                        if (!fetchOptions.headers['Content-Type']) {
+                            fetchOptions.headers['Content-Type'] = 'text/plain;charset=utf-8';
+                        }
+                    }
+                    const response = await fetch(url, fetchOptions);
+                    const text = await response.text();
+                    try {
+                        return JSON.parse(text);
+                    } catch (jsonErr) {
+                        console.error("Non-JSON response from server:", text);
+                        if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                            if (text.includes('Halaman Tidak Ditemukan') || text.includes('tidak dapat membuka file')) {
+                                throw new Error("Google Apps Script di server belum memiliki doPost() atau belum di-update ke Versi Baru (New Version). Pastikan salin kode code_github.gs ke Apps Script lalu klik Deploy > Manage Deployments > Edit (ikon pensil) > Version: NEW VERSION > Deploy.");
+                            } else if (text.includes('ServiceLogin') || text.includes('accounts.google.com')) {
+                                throw new Error("Akses Web App Apps Script ditolak. Ubah Siapa yang Memiliki Akses (Who has access) menjadi 'Anyone' (Siapa Saja).");
+                            }
+                            throw new Error("Server Apps Script mengembalikan halaman HTML/Error bukannya JSON. Periksa log eksekusi Apps Script Anda.");
+                        }
+                        throw new Error("Format respons server tidak valid: " + jsonErr.message);
+                    }
+                } catch (err) {
+                    lastError = err;
+                    if (attempt < retries && !err.message.includes('New Version') && !err.message.includes('Anyone')) {
+                        console.warn(`Retry attempt ${attempt + 1}/${retries}...`);
+                        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                    } else {
+                        throw err;
+                    }
+                }
+            }
+            throw lastError;
         }
 
         // Load config via Fetch API
@@ -491,8 +546,7 @@
                 return;
             }
 
-            fetch(GAS_URL)
-                .then(res => res.json())
+            safeFetchJson(GAS_URL)
                 .then(config => {
                     appConfig = config;
                     if (config.settings && config.settings.app_title) {
@@ -507,7 +561,7 @@
                     loadDraft();
                 })
                 .catch(err => {
-                    Swal.fire('Error Connection', 'Gagal memuat API dari server. Pastikan URL Web App benar dan CORS aktif.', 'error');
+                    Swal.fire('Error Connection', err.message || 'Gagal memuat API dari server.', 'error');
                 });
         };
 
@@ -540,16 +594,22 @@
         document.getElementById('petugasSelect').addEventListener('change', () => { updateLokasiOptions(); renderChecklist(); saveDraft(); });
         document.getElementById('ruanganSelect').addEventListener('change', () => { renderChecklist(); saveDraft(); });
 
-        function renderChecklist() {
+        let currentChecklistRenderId = 0;
+
+        function renderChecklist(preservedFiles = null) {
             const reportType = document.getElementById('reportType').value;
             const ruanganName = document.getElementById('ruanganSelect').value;
             const container = document.getElementById('checklistContainer');
 
             if (!ruanganName) { container.innerHTML = ''; return; }
             container.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"></div></div>';
-            fileStorage = {};
+            
+            // Re-use preserved files if provided, otherwise preserve existing fileStorage entries
+            if (preservedFiles) {
+                fileStorage = preservedFiles;
+            }
 
-            if (!appConfig) { setTimeout(renderChecklist, 500); return; }
+            if (!appConfig) { setTimeout(() => renderChecklist(preservedFiles), 300); return; }
 
             const lokasiObj = appConfig.lokasi.find(l => l.nama === ruanganName);
             const key = lokasiObj ? lokasiObj.kategori : ruanganName;
@@ -565,7 +625,9 @@
                 const body = card.querySelector('.section-body');
 
                 items.forEach(item => {
-                    fileStorage[item.id] = [];
+                    if (!fileStorage[item.id]) {
+                        fileStorage[item.id] = [];
+                    }
                     const div = document.createElement('div');
                     div.className = 'checklist-item';
                     div.innerHTML = `
@@ -581,13 +643,19 @@
                 container.appendChild(card);
             }
 
-            // Fetch progress hari ini untuk mendisable checklist yang sudah selesai
+            // Render photo previews after creating DOM
+            Object.keys(fileStorage).forEach(id => updatePreview(id));
+
+            // Race condition check for async progress fetching
+            const renderId = ++currentChecklistRenderId;
             const selectedPetugas = document.getElementById('petugasSelect').value;
-            fetch(GAS_URL, {
+
+            safeFetchJson(GAS_URL, {
                 method: "POST",
                 body: JSON.stringify({ action: "getProgress", petugas: selectedPetugas, ruangan: ruanganName, reportType: reportType })
-            }).then(res => res.json()).then(filledIds => {
-                if (filledIds && filledIds.length > 0) {
+            }).then(filledIds => {
+                if (renderId !== currentChecklistRenderId) return; // Ignore if user already selected another location
+                if (filledIds && Array.isArray(filledIds) && filledIds.length > 0) {
                     filledIds.forEach(id => {
                         const btn = document.getElementById(`btn_cam_${id}`);
                         if (btn) {
@@ -605,9 +673,20 @@
 
         function updatePreview(id) {
             const grid = document.getElementById(`prev_${id}`);
+            if (!grid) return;
+
+            // Revoke old blob URLs for this item to prevent RAM memory leaks
+            if (createdBlobUrls[id] && Array.isArray(createdBlobUrls[id])) {
+                createdBlobUrls[id].forEach(url => URL.revokeObjectURL(url));
+            }
+            createdBlobUrls[id] = [];
+
             grid.innerHTML = "";
+            if (!fileStorage[id]) return;
+
             fileStorage[id].forEach((file, index) => {
                 const url = URL.createObjectURL(file);
+                createdBlobUrls[id].push(url);
                 const wrapper = document.createElement('div');
                 wrapper.className = 'preview-wrapper';
                 wrapper.innerHTML = `<img src="${url}" class="preview-img"><button type="button" class="btn-remove" onclick="removeFile('${id}', ${index})"><i class="bi bi-x"></i></button>`;
@@ -615,7 +694,13 @@
             });
         }
 
-        function removeFile(id, index) { fileStorage[id].splice(index, 1); updatePreview(id); saveDraft(); }
+        function removeFile(id, index) { 
+            if (fileStorage[id]) {
+                fileStorage[id].splice(index, 1); 
+                updatePreview(id); 
+                saveDraft(); 
+            }
+        }
 
         function showUploadProgress(current, total) {
             const pct = total > 0 ? Math.round((current / total) * 100) : 0;
@@ -639,7 +724,9 @@
             btn.disabled = true;
 
             let totalFiles = 0;
-            Object.keys(fileStorage).forEach(id => totalFiles += fileStorage[id].length);
+            Object.keys(fileStorage).forEach(id => {
+                if (fileStorage[id]) totalFiles += fileStorage[id].length;
+            });
 
             if (totalFiles === 0) {
                 const confirm = await Swal.fire({ title: 'Tidak Ada Foto', text: 'Anda belum mengambil foto apapun. Tetap kirim laporan?', icon: 'question', showCancelButton: true, confirmButtonText: 'Ya, Kirim', confirmButtonColor: '#2563eb' });
@@ -651,24 +738,24 @@
             let uploadedCount = 0;
             try {
                 for (const id of Object.keys(fileStorage)) {
-                    if (fileStorage[id].length > 0) {
+                    if (fileStorage[id] && fileStorage[id].length > 0) {
                         const urls = [];
                         for (let i = 0; i < fileStorage[id].length; i++) {
                             uploadedCount++;
                             showUploadProgress(uploadedCount, totalFiles);
 
                             const file = fileStorage[id][i];
-                            const base64 = await new Promise((resolve) => {
+                            const base64 = await new Promise((resolve, reject) => {
                                 const reader = new FileReader();
                                 reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+                                reader.onerror = (err) => reject(err || new Error("Gagal membaca file foto"));
                                 reader.readAsDataURL(file);
                             });
 
-                            const response = await fetch(GAS_URL, {
+                            const result = await safeFetchJson(GAS_URL, {
                                 method: "POST",
                                 body: JSON.stringify({ action: "upload", base64: base64, fileName: file.name, reportType: formData.reportType, ruangan: formData.ruangan })
                             });
-                            const result = await response.json();
                             if (result.status !== 'success') {
                                 throw new Error(result.message || "Gagal mengunggah foto");
                             }
@@ -680,21 +767,20 @@
 
                 Swal.fire({ title: '💾 Finalisasi...', html: '<div style="color:#64748b">Menyimpan data ke GSheet...</div>', allowOutsideClick: false, showConfirmButton: false });
 
-                const response = await fetch(GAS_URL, {
+                const res = await safeFetchJson(GAS_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "submit", formData: formData })
                 });
-                const res = await response.json();
 
                 btn.disabled = false;
                 if (res.status === 'success') {
-                    Swal.fire({ icon: 'success', title: 'Berhasil! 🎉', text: res.message, confirmButtonColor: '#2563eb' }).then(() => {
+                    Swal.fire({ icon: 'success', title: 'Berhasil! 🎉', text: res.message || 'Laporan tersimpan.', confirmButtonColor: '#2563eb' }).then(() => {
                         clearDraft(); form.reset(); fileStorage = {}; document.getElementById('checklistContainer').innerHTML = ''; updateLokasiOptions();
                     });
-                } else { Swal.fire('Gagal', res.message, 'error'); }
+                } else { Swal.fire('Gagal', res.message || 'Gagal menyimpan laporan.', 'error'); }
 
             } catch (e) {
-                btn.disabled = false; Swal.fire('Error', 'Gagal proses, periksa koneksi internet: ' + e.message, 'error');
+                btn.disabled = false; Swal.fire('Gagal Kirim Laporan', e.message || 'Periksa koneksi internet Anda.', 'error');
             }
         }
     </script>
