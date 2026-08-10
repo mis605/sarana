@@ -167,29 +167,25 @@ function getAppConfig() {
     }
   }
 
-  // 2. Dapatkan data Lokasi dari Sheet 'lokasi' jika ada
-  const lokasiSheet = ss.getSheetByName("lokasi") || ss.getSheetByName("Lokasi");
-  if (lokasiSheet) {
+  // 3. Dapatkan data Settings dari Sheet 'settings', 'Settings', atau 'db' jika ada
+  const settingsSheet = ss.getSheetByName("settings") || ss.getSheetByName("Settings") || ss.getSheetByName(SHEET_CONFIG_NAME);
+  if (settingsSheet) {
     try {
-      const lData = lokasiSheet.getDataRange().getValues();
-      if (lData && lData.length > 1) {
-        const dynamicLokasi = [];
-        for (let r = 1; r < lData.length; r++) {
-          const row = lData[r];
-          if (!row || row.length === 0) continue;
-          const locNama = String(row[0] || "").trim();
-          const locPic = String(row[1] || "").trim();
-          const locKat = String(row[2] || "").trim();
-          if (locNama && !locNama.toLowerCase().startsWith("nama") && !locNama.toLowerCase().startsWith("lokasi")) {
-            dynamicLokasi.push({ nama: locNama, pic: locPic, kategori: locKat });
+      const sData = settingsSheet.getDataRange().getValues();
+      if (sData && sData.length > 0) {
+        sData.forEach(row => {
+          if (row && row.length >= 2) {
+            const key = String(row[0] || "").trim().toLowerCase();
+            const val = String(row[1] || "").trim();
+            if (key && val) {
+              if (key.includes("title") || key.includes("judul") || key.includes("app")) settings.app_title = val;
+              if (key.includes("folder")) settings.folder_id = val;
+            }
           }
-        }
-        if (dynamicLokasi.length > 0) {
-          lokasi = dynamicLokasi;
-        }
+        });
       }
-    } catch (errLokasi) {
-      Logger.log("Error membaca sheet 'lokasi': " + errLokasi.toString());
+    } catch (errSettings) {
+      Logger.log("Error membaca sheet 'settings': " + errSettings.toString());
     }
   }
 
