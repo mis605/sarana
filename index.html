@@ -10,76 +10,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="app.js"></script>
     <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg-body: #f8fafc;
-            --bg-card: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --border-color: #e2e8f0;
-            --input-bg: #ffffff;
-            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        }
-
-        [data-bs-theme="dark"] {
-            --bg-body: #0f172a;
-            --bg-card: #1e293b;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --border-color: #334155;
-            --input-bg: #0f172a;
-        }
-
-        body {
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            padding-bottom: 80px;
-            transition: all 0.3s ease;
-        }
-
-        .container {
-            max-width: 800px;
-            margin-top: 24px;
-        }
-
-        .glass-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            box-shadow: var(--card-shadow);
-            margin-bottom: 20px;
-            overflow: hidden;
-            transition: transform 0.2s;
-        }
-
-        .app-header {
-            padding: 32px 20px;
-            text-align: center;
-            background: linear-gradient(135deg, var(--primary), #4f46e5);
-            color: white;
-            border-radius: 16px;
-            margin-bottom: 24px;
-            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
-        }
-
-        .section-header {
-            background: var(--bg-body);
-            padding: 12px 16px;
-            font-weight: 700;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--primary);
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
         .checklist-item {
             padding: 20px;
             border-bottom: 1px solid var(--border-color);
@@ -160,65 +94,6 @@
             justify-content: center;
             cursor: pointer;
         }
-
-        .form-control,
-        .form-select {
-            border-radius: 10px;
-            padding: 12px;
-            background-color: var(--input-bg);
-            border-color: var(--border-color);
-            color: var(--text-main);
-        }
-
-        .nav-floating {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            padding: 8px;
-            border-radius: 50px;
-            display: flex;
-            gap: 8px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-        }
-
-        .nav-btn {
-            padding: 10px 20px;
-            border-radius: 40px;
-            text-decoration: none;
-            color: var(--text-muted);
-            font-weight: 600;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: 0.3s;
-        }
-
-        .nav-btn.active {
-            background: var(--primary);
-            color: white;
-        }
-
-        .theme-switch-small {
-            width: 42px;
-            height: 42px;
-            border-radius: 21px;
-            background: var(--bg-body);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-
-        .swal-top-zindex {
-            z-index: 99999 !important;
-        }
     </style>
 </head>
 
@@ -283,27 +158,27 @@
 
     <!-- Modal Kamera Canvas -->
     <div id="cameraModal"
-        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; flex-direction:column; align-items:center; justify-content:center; gap:16px;">
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:16px;">
         <video id="cameraVideo" autoplay playsinline
-            style="width:100%; max-width:640px; max-height:60vh; border-radius:12px; background:#000;"></video>
-        <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center;">
+            style="width:100%; max-width:640px; max-height:60vh; border-radius:12px; background:#000; object-fit:cover;"></video>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
             <button type="button" onclick="capturePhoto()"
-                style="padding:14px 32px; border-radius:50px; border:none; background:#2563eb; color:#fff; font-size:1rem; font-weight:700; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                style="padding:14px 28px; border-radius:50px; border:none; background:#2563eb; color:#fff; font-size:0.95rem; font-weight:700; display:flex; align-items:center; gap:8px; cursor:pointer;">
                 <i class="bi bi-camera-fill"></i> Ambil Foto
             </button>
+            <button type="button" onclick="switchCamera()"
+                style="padding:14px 20px; border-radius:50px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.1); color:#fff; font-size:0.95rem; font-weight:600; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <i class="bi bi-arrow-repeat"></i> Putar Kamera
+            </button>
             <button type="button" onclick="closeCamera()"
-                style="padding:14px 28px; border-radius:50px; border:2px solid #ef4444; background:transparent; color:#ef4444; font-size:1rem; font-weight:700; cursor:pointer;">
+                style="padding:14px 24px; border-radius:50px; border:2px solid #ef4444; background:transparent; color:#ef4444; font-size:0.95rem; font-weight:700; cursor:pointer;">
                 <i class="bi bi-x-lg"></i> Tutup
             </button>
         </div>
-        <p style="color:rgba(255,255,255,0.5); font-size:0.8rem; margin:0;">Resolusi 1280×960 • Rasio 4:3 • Max 3 foto
-            per item</p>
+        <p style="color:rgba(255,255,255,0.5); font-size:0.8rem; margin:0;">Resolusi 1280×960 • Max 3 foto per item</p>
     </div>
 
     <script>
-        // ⚠️ URL WEB APP GOOGLE APPS SCRIPT BARU
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycby7-sTPf8QQRlFGJL7ZdsyJd-BXzTKt3jhBC6CdXDjwn7Rv43MJc7sYiZw37MNsxUNZxA/exec';
-
         let appConfig = null;
         let fileStorage = {};
         const COMPRESSION_QUALITY = 0.6;
@@ -311,34 +186,16 @@
         const CANVAS_WIDTH = 1280;
         const CANVAS_HEIGHT = 960; // 4:3 ratio
 
-        // Theme Toggle
-        function toggleTheme() {
-            const body = document.body;
-            const icon = document.getElementById('themeIcon');
-            const isDark = body.getAttribute('data-bs-theme') === 'dark';
-            body.setAttribute('data-bs-theme', isDark ? 'light' : 'dark');
-            icon.className = isDark ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
-            localStorage.setItem('theme', isDark ? 'light' : 'dark');
-        }
-        window.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.body.setAttribute('data-bs-theme', savedTheme);
-            const icon = document.getElementById('themeIcon');
-            if (icon) icon.className = savedTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
-        });
-
         // ======= KAMERA CANVAS =======
         let activeCameraItemId = null;
         let cameraStream = null;
         let createdBlobUrls = {};
+        let currentFacingMode = 'environment';
 
-        function openCamera(itemId) {
-            activeCameraItemId = itemId;
-            const modal = document.getElementById('cameraModal');
-            modal.style.display = 'flex';
+        function startCameraStream() {
             const video = document.getElementById('cameraVideo');
             navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } },
+                video: { facingMode: currentFacingMode, width: { ideal: 1280 }, height: { ideal: 960 } },
                 audio: false
             }).then(stream => {
                 cameraStream = stream;
@@ -348,6 +205,22 @@
                 closeCamera();
                 Swal.fire('Kamera Gagal', 'Tidak dapat mengakses kamera: ' + err.message, 'error');
             });
+        }
+
+        function openCamera(itemId) {
+            activeCameraItemId = itemId;
+            const modal = document.getElementById('cameraModal');
+            modal.style.display = 'flex';
+            startCameraStream();
+        }
+
+        function switchCamera() {
+            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(t => t.stop());
+                cameraStream = null;
+            }
+            startCameraStream();
         }
 
         function closeCamera() {
@@ -498,47 +371,6 @@
             } catch (e) { console.warn("Clear draft gagal", e); }
         }
 
-        // Helper untuk fetch JSON aman dengan Retry Otomatis
-        async function safeFetchJson(url, options = {}, retries = 2) {
-            let lastError = null;
-            for (let attempt = 0; attempt <= retries; attempt++) {
-                try {
-                    const fetchOptions = { redirect: 'follow', ...options };
-                    if (fetchOptions.method === 'POST' && typeof fetchOptions.body === 'string') {
-                        fetchOptions.headers = fetchOptions.headers || {};
-                        if (!fetchOptions.headers['Content-Type']) {
-                            fetchOptions.headers['Content-Type'] = 'text/plain;charset=utf-8';
-                        }
-                    }
-                    const response = await fetch(url, fetchOptions);
-                    const text = await response.text();
-                    try {
-                        return JSON.parse(text);
-                    } catch (jsonErr) {
-                        console.warn("Server response text:", text);
-                        if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-                            if (text.includes('ServiceLogin') || text.includes('accounts.google.com')) {
-                                throw new Error("Akses Web App Apps Script ditolak. Pastikan 'Who has access' di-set ke 'Anyone'.");
-                            }
-                            const errMatch = text.match(/class="errorMessage"[^>]*>(.*?)<\/p>/i) || text.match(/<body[^>]*>(.*?)<\/body>/i);
-                            const cleanHtmlMsg = errMatch ? errMatch[1].replace(/<[^>]+>/g, '').trim() : '';
-                            throw new Error(cleanHtmlMsg || "Kendala koneksi respons server Apps Script. Silakan coba klik Kirim Laporan sekali lagi.");
-                        }
-                        throw new Error("Format respons dari server tidak sesuai: " + jsonErr.message);
-                    }
-                } catch (err) {
-                    lastError = err;
-                    if (attempt < retries && !err.message.includes('Anyone')) {
-                        console.warn(`Retry attempt ${attempt + 1}/${retries}...`);
-                        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-                    } else {
-                        throw err;
-                    }
-                }
-            }
-            throw lastError;
-        }
-
         // Load config via Fetch API
         window.onload = () => {
             if (GAS_URL === 'MASUKKAN_URL_WEB_APP_GAS_ANDA_DI_SINI') {
@@ -558,7 +390,16 @@
                         const opt = document.createElement('option');
                         opt.value = p.nama; opt.text = p.nama; petugasSelect.appendChild(opt);
                     });
+
+                    // Auto-restore last selected petugas for 1-tap UX
+                    const savedPetugas = getSavedPetugas();
+                    if (savedPetugas && config.petugas.some(p => p.nama === savedPetugas)) {
+                        petugasSelect.value = savedPetugas;
+                        updateLokasiOptions();
+                    }
+
                     loadDraft();
+                    renderChecklist();
                 })
                 .catch(err => {
                     Swal.fire('Error Connection', err.message || 'Gagal memuat API dari server.', 'error');
@@ -591,7 +432,12 @@
             }
         }
 
-        document.getElementById('petugasSelect').addEventListener('change', () => { updateLokasiOptions(); renderChecklist(); saveDraft(); });
+        document.getElementById('petugasSelect').addEventListener('change', () => { 
+            setSavedPetugas(document.getElementById('petugasSelect').value);
+            updateLokasiOptions(); 
+            renderChecklist(); 
+            saveDraft(); 
+        });
         document.getElementById('ruanganSelect').addEventListener('change', () => { renderChecklist(); saveDraft(); });
 
         let currentChecklistRenderId = 0;
@@ -601,7 +447,16 @@
             const ruanganName = document.getElementById('ruanganSelect').value;
             const container = document.getElementById('checklistContainer');
 
-            if (!ruanganName) { container.innerHTML = ''; return; }
+            if (!ruanganName) {
+                container.innerHTML = `
+                    <div class="glass-card text-center p-4 my-3">
+                        <i class="bi bi-geo-alt fs-1 text-primary mb-2 d-block"></i>
+                        <strong class="d-block text-main fs-6 mb-1">Silakan Pilih Lokasi Penugasan</strong>
+                        <p class="small text-muted mb-0">Daftar item pekerjaan ceklist akan otomatis tampil setelah lokasi dipilih.</p>
+                    </div>`;
+                return;
+            }
+
             container.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"></div></div>';
             
             // Re-use preserved files if provided, otherwise preserve existing fileStorage entries
@@ -635,7 +490,7 @@
                     const div = document.createElement('div');
                     div.className = 'checklist-item';
                     div.innerHTML = `
-            <label class="label-tugas">${item.label}</label>
+            <label class="label-tugas d-flex justify-content-between align-items-center"><span>${item.label}</span></label>
             <div class="upload-grid" style="grid-template-columns: 1fr;">
               <button type="button" class="btn-upload" onclick="openCamera('${item.id}')" id="btn_cam_${item.id}">
                 <i class="bi bi-camera-fill"></i><span>Ambil Foto</span>
@@ -664,11 +519,22 @@
                         const btn = document.getElementById(`btn_cam_${id}`);
                         if (btn) {
                             btn.disabled = true;
-                            btn.innerHTML = '<i class="bi bi-check-circle-fill"></i><span>Sudah Selesai</span>';
+                            btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Sudah Selesai Hari Ini';
                             btn.classList.remove('btn-upload');
                             btn.classList.add('btn-success');
-                            btn.style.opacity = '0.7';
+                            btn.style.opacity = '0.85';
                             btn.style.cursor = 'not-allowed';
+
+                            const itemWrapper = btn.closest('.checklist-item');
+                            if (itemWrapper) {
+                                const labelSpan = itemWrapper.querySelector('.label-tugas');
+                                if (labelSpan && !labelSpan.querySelector('.badge-completed')) {
+                                    const badge = document.createElement('span');
+                                    badge.className = 'badge-completed ms-2';
+                                    badge.innerHTML = '<i class="bi bi-check-lg me-1"></i>Selesai';
+                                    labelSpan.appendChild(badge);
+                                }
+                            }
                         }
                     });
                 }
