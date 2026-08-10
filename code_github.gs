@@ -96,7 +96,7 @@ function getAppConfig() {
     sheet_config: SHEET_CONFIG_NAME
   };
 
-  // Fallback default list
+  // Daftar Petugas Default (Ubah status ke "Nonaktif" jika ingin menyembunyikan petugas tertentu)
   let petugas = [
     { nama: "Muhamad Tajudin", unit: "Facility Management", status: "Aktif" },
     { nama: "Wahyu", unit: "Facility Management", status: "Aktif" },
@@ -113,50 +113,50 @@ function getAppConfig() {
     { nama: "Rooftop", pic: "Anom", kategori: "Rooftop" }
   ];
 
-  // Baca sheet db secara dinamis jika tersedia
+  // Kata kunci checklist yang HARUS diabaikan agar tidak salah terbaca sebagai Nama Petugas
+  const reportKeywords = ["harian", "mingguan", "bulanan", "pekerjaan", "office", "rooftop", "lobby", "basement", "dusting", "sweeping", "cuci", "coating", "cleaning", "pintu", "mop", "sampah", "toilet", "closet", "cermin", "tissue", "pantry"];
+
+  // Baca sheet db secara dinamis HANYA jika baris pertama memuat header 'Petugas'
   if (configSheet) {
     try {
       const dbValues = configSheet.getDataRange().getValues();
       if (dbValues && dbValues.length > 1) {
-        const customPetugas = [];
-        const customLokasi = [];
+        const headerRow = dbValues[0].map(c => String(c).toLowerCase().trim());
         
-        for (let r = 1; r < dbValues.length; r++) {
-          const row = dbValues[r];
-          if (!row || row.length === 0) continue;
-          
-          // Kolom A: Nama Petugas, Kolom B: Unit, Kolom C: Status (Aktif / Nonaktif)
-          const nama = String(row[0] || "").trim();
-          const unit = String(row[1] || "Facility Management").trim();
-          const status = String(row[2] || "Aktif").trim().toLowerCase();
-          
-          if (nama && !nama.toLowerCase().startsWith("nama")) {
-            const isNonAktif = status.includes("non") || status.includes("tidak") || status === "off" || status === "0" || status === "false";
-            if (!isNonAktif) {
-              customPetugas.push({ nama: nama, unit: unit });
-            }
-          }
+        // Cari posisi indeks kolom berdasarkan header
+        const colNamaIdx = headerRow.findIndex(h => h.includes("petugas") || h.includes("nama"));
+        const colUnitIdx = headerRow.findIndex(h => h.includes("unit") || h.includes("jabatan"));
+        const colStatusIdx = headerRow.findIndex(h => h.includes("status"));
 
-          // Kolom D: Nama Lokasi, Kolom E: PIC Petugas, Kolom F: Kategori
-          if (row.length >= 6) {
-            const locNama = String(row[3] || "").trim();
-            const locPic = String(row[4] || "").trim();
-            const locKat = String(row[5] || "").trim();
-            if (locNama && !locNama.toLowerCase().startsWith("nama")) {
-              customLokasi.push({ nama: locNama, pic: locPic, kategori: locKat });
+        // Hanya baca jika sheet db memang memiliki kolom khusus Petugas
+        if (colNamaIdx !== -1 && colStatusIdx !== -1) {
+          const customPetugas = [];
+          for (let r = 1; r < dbValues.length; r++) {
+            const row = dbValues[r];
+            if (!row || row.length === 0) continue;
+            
+            const nama = String(row[colNamaIdx] || "").trim();
+            const unit = colUnitIdx !== -1 ? String(row[colUnitIdx] || "Facility Management").trim() : "Facility Management";
+            const status = String(row[colStatusIdx] || "Aktif").trim().toLowerCase();
+            const lowerNama = nama.toLowerCase();
+
+            // Abaikan jika nama kosong, kata kunci report, atau header
+            if (nama && !lowerNama.startsWith("nama") && !reportKeywords.some(kw => lowerNama.includes(kw))) {
+              const isNonAktif = status.includes("non") || status.includes("tidak") || status === "off" || status === "0" || status === "false";
+              if (!isNonAktif) {
+                customPetugas.push({ nama: nama, unit: unit, status: "Aktif" });
+              }
             }
           }
+          if (customPetugas.length > 0) petugas = customPetugas;
         }
-
-        if (customPetugas.length > 0) petugas = customPetugas;
-        if (customLokasi.length > 0) lokasi = customLokasi;
       }
     } catch (e) {
       Logger.log("Error membaca sheet db: " + e.toString());
     }
   }
 
-  // Filter petugas yang berstatus nonaktif
+  // Saring petugas yang berstatus Aktif saja
   petugas = petugas.filter(p => {
     const s = String(p.status || "Aktif").toLowerCase();
     return !s.includes("non") && !s.includes("tidak") && s !== "off" && s !== "0";
