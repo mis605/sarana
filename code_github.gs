@@ -6,10 +6,22 @@
  * Who has access: Anyone
  */
 
-const FOLDER_ID = "11gB1Jkjkqa24qifa1QtkwbK8cxIa4wW9"; // Folder Google Drive Simpan Foto
+const FOLDER_ID = "11gB1Jkjkqa24qifa1QtkwbK8cxIa4wW9";      // Folder Google Drive Simpan Foto
+const SPREADSHEET_ID = "1mQ6Gfb83KkU_qUAYP-tjjlOui8OjZhxA5JBqIbygPPk"; // ID Spreadsheet Data & Config
 const SHEET_DATA_NAME = "data";                       // Nama Sheet Riwayat Data
 const SHEET_CONFIG_NAME = "db";                        // Nama Sheet Konfigurasi
 const SHEET_PETUGAS_NAME = "petugas";                  // Nama Sheet Daftar Petugas
+
+/**
+ * Helper untuk membuka Spreadsheet (berlaku untuk container-bound maupun standalone script)
+ */
+function getSpreadsheet() {
+  try {
+    const active = SpreadsheetApp.getActiveSpreadsheet();
+    if (active) return active;
+  } catch (e) {}
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
 
 /**
  * JALANKAN FUNGSI INI SEKALI DI EDITOR APPS SCRIPT (klik Run / Jalankan)
@@ -18,7 +30,7 @@ const SHEET_PETUGAS_NAME = "petugas";                  // Nama Sheet Daftar Petu
 function testDriveAndSheetAccess() {
   const folder = DriveApp.getFolderById(FOLDER_ID);
   Logger.log("Akses Folder Drive Sukses: " + folder.getName());
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   Logger.log("Akses Spreadsheet Sukses: " + ss.getName());
 }
 
@@ -87,7 +99,7 @@ function responseJSON(data) {
 }
 
 function getAppConfig() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   
   const settings = {
     app_title: "Ceklist Sarana Gedung",
@@ -336,7 +348,7 @@ function handleUpload(data) {
 }
 
 function handleSubmit(formData) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_DATA_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_DATA_NAME);
@@ -409,7 +421,7 @@ function formatCellDate(cell) {
 
 function getProgressData(petugas, ruangan, reportType) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(SHEET_DATA_NAME);
     if (!sheet) return [];
 
@@ -467,7 +479,7 @@ function getProgressData(petugas, ruangan, reportType) {
 
 function getDashboardData() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet();
     const sheet = ss.getSheetByName(SHEET_DATA_NAME);
     if (!sheet) return [];
 
