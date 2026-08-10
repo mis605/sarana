@@ -9,6 +9,7 @@
 const FOLDER_ID = "11gB1Jkjkqa24qifa1QtkwbK8cxIa4wW9"; // Folder Google Drive Simpan Foto
 const SHEET_DATA_NAME = "data";                       // Nama Sheet Riwayat Data
 const SHEET_CONFIG_NAME = "db";                        // Nama Sheet Konfigurasi
+const SHEET_PETUGAS_NAME = "petugas";                  // Nama Sheet Daftar Petugas
 
 /**
  * JALANKAN FUNGSI INI SEKALI DI EDITOR APPS SCRIPT (klik Run / Jalankan)
@@ -87,7 +88,6 @@ function responseJSON(data) {
 
 function getAppConfig() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const configSheet = ss.getSheetByName(SHEET_CONFIG_NAME);
   
   const settings = {
     app_title: "Ceklist Sarana Gedung",
@@ -96,13 +96,14 @@ function getAppConfig() {
     sheet_config: SHEET_CONFIG_NAME
   };
 
-  // Daftar Petugas Default (Ubah status ke "Nonaktif" jika ingin menyembunyikan petugas tertentu)
+  // Fallback default petugas
   let petugas = [
-    { nama: "Muhamad Tajudin", unit: "Facility Management", status: "Aktif" },
-    { nama: "Wahyu", unit: "Facility Management", status: "Aktif" },
-    { nama: "Anom", unit: "Facility Management", status: "Aktif" }
+    { nama: "Muhamad Tajudin", unit: "Facility Management" },
+    { nama: "Wahyu", unit: "Facility Management" },
+    { nama: "Anom", unit: "Facility Management" }
   ];
 
+  // Fallback default lokasi
   let lokasi = [
     { nama: "Lantai 1", pic: "Muhamad Tajudin", kategori: "Office_Tajudin" },
     { nama: "Lantai 3", pic: "Muhamad Tajudin", kategori: "Office_Tajudin" },
@@ -113,54 +114,72 @@ function getAppConfig() {
     { nama: "Rooftop", pic: "Anom", kategori: "Rooftop" }
   ];
 
-  // Kata kunci checklist yang HARUS diabaikan agar tidak salah terbaca sebagai Nama Petugas
-  const reportKeywords = ["harian", "mingguan", "bulanan", "pekerjaan", "office", "rooftop", "lobby", "basement", "dusting", "sweeping", "cuci", "coating", "cleaning", "pintu", "mop", "sampah", "toilet", "closet", "cermin", "tissue", "pantry"];
-
-  // Baca sheet db secara dinamis HANYA jika baris pertama memuat header 'Petugas'
-  if (configSheet) {
+  // 1. Dapatkan data Petugas dari Sheet 'petugas' (atau 'Petugas') secara Dinamis
+  const petugasSheet = ss.getSheetByName(SHEET_PETUGAS_NAME) || ss.getSheetByName("Petugas");
+  if (petugasSheet) {
     try {
-      const dbValues = configSheet.getDataRange().getValues();
-      if (dbValues && dbValues.length > 1) {
-        const headerRow = dbValues[0].map(c => String(c).toLowerCase().trim());
+      const pData = petugasSheet.getDataRange().getValues();
+      if (pData && pData.length > 1) {
+        const headerRow = pData[0].map(c => String(c).toLowerCase().trim());
         
-        // Cari posisi indeks kolom berdasarkan header
-        const colNamaIdx = headerRow.findIndex(h => h.includes("petugas") || h.includes("nama"));
-        const colUnitIdx = headerRow.findIndex(h => h.includes("unit") || h.includes("jabatan"));
-        const colStatusIdx = headerRow.findIndex(h => h.includes("status"));
+        let colNamaIdx = headerRow.findIndex(h => h.includes("nama") || h.includes("petugas"));
+        let colUnitIdx = headerRow.findIndex(h => h.includes("unit") || h.includes("jabatan") || h.includes("divisi"));
+        let colStatusIdx = headerRow.findIndex(h => h.includes("status"));
 
-        // Hanya baca jika sheet db memang memiliki kolom khusus Petugas
-        if (colNamaIdx !== -1 && colStatusIdx !== -1) {
-          const customPetugas = [];
-          for (let r = 1; r < dbValues.length; r++) {
-            const row = dbValues[r];
-            if (!row || row.length === 0) continue;
-            
-            const nama = String(row[colNamaIdx] || "").trim();
-            const unit = colUnitIdx !== -1 ? String(row[colUnitIdx] || "Facility Management").trim() : "Facility Management";
-            const status = String(row[colStatusIdx] || "Aktif").trim().toLowerCase();
-            const lowerNama = nama.toLowerCase();
+        if (colNamaIdx === -1) colNamaIdx = 0;
+        if (colUnitIdx === -1) colUnitIdx = 1;
+        if (colStatusIdx === -1) colStatusIdx = 2;
 
-            // Abaikan jika nama kosong, kata kunci report, atau header
-            if (nama && !lowerNama.startsWith("nama") && !reportKeywords.some(kw => lowerNama.includes(kw))) {
-              const isNonAktif = status.includes("non") || status.includes("tidak") || status === "off" || status === "0" || status === "false";
-              if (!isNonAktif) {
-                customPetugas.push({ nama: nama, unit: unit, status: "Aktif" });
-              }
+        const dynamicPetugas = [];
+        for (let r = 1; r < pData.length; r++) {
+          const row = pData[r];
+          if (!row || row.length === 0) continue;
+
+          const nama = String(row[colNamaIdx] || "").trim();
+          const unit = String(row[colUnitIdx] || "Facility Management").trim();
+          const status = String(row[colStatusIdx] || "Aktif").trim().toLowerCase();
+
+          if (nama && !nama.toLowerCase().startsWith("nama") && !nama.toLowerCase().startsWith("petugas")) {
+            const isNonAktif = status.includes("non") || status.includes("tidak") || status === "off" || status === "0" || status === "false";
+            if (!isNonAktif) {
+              dynamicPetugas.push({ nama: nama, unit: unit });
             }
           }
-          if (customPetugas.length > 0) petugas = customPetugas;
+        }
+        if (dynamicPetugas.length > 0) {
+          petugas = dynamicPetugas;
         }
       }
-    } catch (e) {
-      Logger.log("Error membaca sheet db: " + e.toString());
+    } catch (errPetugas) {
+      Logger.log("Error membaca sheet 'petugas': " + errPetugas.toString());
     }
   }
 
-  // Saring petugas yang berstatus Aktif saja
-  petugas = petugas.filter(p => {
-    const s = String(p.status || "Aktif").toLowerCase();
-    return !s.includes("non") && !s.includes("tidak") && s !== "off" && s !== "0";
-  });
+  // 2. Dapatkan data Lokasi dari Sheet 'lokasi' jika ada
+  const lokasiSheet = ss.getSheetByName("lokasi") || ss.getSheetByName("Lokasi");
+  if (lokasiSheet) {
+    try {
+      const lData = lokasiSheet.getDataRange().getValues();
+      if (lData && lData.length > 1) {
+        const dynamicLokasi = [];
+        for (let r = 1; r < lData.length; r++) {
+          const row = lData[r];
+          if (!row || row.length === 0) continue;
+          const locNama = String(row[0] || "").trim();
+          const locPic = String(row[1] || "").trim();
+          const locKat = String(row[2] || "").trim();
+          if (locNama && !locNama.toLowerCase().startsWith("nama") && !locNama.toLowerCase().startsWith("lokasi")) {
+            dynamicLokasi.push({ nama: locNama, pic: locPic, kategori: locKat });
+          }
+        }
+        if (dynamicLokasi.length > 0) {
+          lokasi = dynamicLokasi;
+        }
+      }
+    } catch (errLokasi) {
+      Logger.log("Error membaca sheet 'lokasi': " + errLokasi.toString());
+    }
+  }
 
   const officeDailyItems = [
     { id: "h_meja", label: "Dusting Meja", col: 6 },
