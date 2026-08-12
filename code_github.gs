@@ -11,6 +11,7 @@ const SPREADSHEET_ID = "1mQ6Gfb83KkU_qUAYP-tjjlOui8OjZhxA5JBqIbygPPk"; // ID Spr
 const SHEET_DATA_NAME = "data";                       // Nama Sheet Riwayat Data
 const SHEET_CONFIG_NAME = "db";                        // Nama Sheet Konfigurasi
 const SHEET_PETUGAS_NAME = "petugas";                  // Nama Sheet Daftar Petugas
+const SHEET_LOKASI_NAME = "lokasi";                    // Nama Sheet Daftar Lokasi/Lantai
 
 /**
  * Helper untuk membuka Spreadsheet (berlaku untuk container-bound maupun standalone script)
@@ -98,7 +99,45 @@ function responseJSON(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+const APP_CONFIG_CACHE_KEY = "app_config_v1";
+const APP_CONFIG_CACHE_TTL_SECONDS = 300; // 5 menit
+
+/**
+ * Ambil config aplikasi (petugas, lokasi, settings, checklist), dengan cache 5 menit
+ * agar tidak perlu baca ulang sheet 'petugas'/'lokasi'/'settings' di setiap request.
+ * Setelah edit sheet, perubahan akan terlihat di app maksimal 5 menit kemudian,
+ * atau langsung jalankan clearAppConfigCache() di editor Apps Script untuk paksa refresh.
+ */
 function getAppConfig() {
+  const cache = CacheService.getScriptCache();
+  try {
+    const cached = cache.get(APP_CONFIG_CACHE_KEY);
+    if (cached) return JSON.parse(cached);
+  } catch (errCacheRead) {
+    Logger.log("Gagal membaca cache config: " + errCacheRead.toString());
+  }
+
+  const config = buildAppConfig();
+
+  try {
+    cache.put(APP_CONFIG_CACHE_KEY, JSON.stringify(config), APP_CONFIG_CACHE_TTL_SECONDS);
+  } catch (errCacheWrite) {
+    Logger.log("Gagal menyimpan cache config: " + errCacheWrite.toString());
+  }
+
+  return config;
+}
+
+/**
+ * JALANKAN FUNGSI INI SECARA MANUAL DI EDITOR APPS SCRIPT setelah mengubah
+ * sheet 'petugas'/'lokasi'/'settings' jika ingin perubahan langsung tanpa menunggu 5 menit.
+ */
+function clearAppConfigCache() {
+  CacheService.getScriptCache().remove(APP_CONFIG_CACHE_KEY);
+  Logger.log("Cache app config sudah dibersihkan.");
+}
+
+function buildAppConfig() {
   const ss = getSpreadsheet();
   
   const settings = {
@@ -111,7 +150,7 @@ function getAppConfig() {
   // Fallback default petugas
   let petugas = [
     { nama: "Muhamad Tajudin", unit: "Facility Management" },
-    { nama: "Wahyu", unit: "Facility Management" },
+    { nama: "Wahyu Aji Warseno", unit: "Facility Management" },
     { nama: "Anom", unit: "Facility Management" }
   ];
 
@@ -120,9 +159,9 @@ function getAppConfig() {
     { nama: "Lantai 1", pic: "Muhamad Tajudin", kategori: "Office_Tajudin" },
     { nama: "Lantai 3", pic: "Muhamad Tajudin", kategori: "Office_Tajudin" },
     { nama: "Lobby", pic: "Muhamad Tajudin", kategori: "Lobby" },
-    { nama: "Basement", pic: "Wahyu", kategori: "Basement" },
-    { nama: "Lantai 2", pic: "Wahyu", kategori: "Office_Wahyu" },
-    { nama: "Lantai 5", pic: "Wahyu", kategori: "Lantai_5" },
+    { nama: "Basement", pic: "Wahyu Aji Warseno", kategori: "Basement" },
+    { nama: "Lantai 2", pic: "Wahyu Aji Warseno", kategori: "Office_Wahyu" },
+    { nama: "Lantai 5", pic: "Wahyu Aji Warseno", kategori: "Lantai_5" },
     { nama: "Rooftop", pic: "Anom", kategori: "Rooftop" }
   ];
 
@@ -164,6 +203,45 @@ function getAppConfig() {
       }
     } catch (errPetugas) {
       Logger.log("Error membaca sheet 'petugas': " + errPetugas.toString());
+    }
+  }
+
+  // 2. Dapatkan data Lokasi dari Sheet 'lokasi' (atau 'Lokasi') secara Dinamis
+  const lokasiSheet = ss.getSheetByName(SHEET_LOKASI_NAME) || ss.getSheetByName("Lokasi");
+  if (lokasiSheet) {
+    try {
+      const lData = lokasiSheet.getDataRange().getValues();
+      if (lData && lData.length > 1) {
+        const headerRow = lData[0].map(c => String(c).toLowerCase().trim());
+
+        let colNamaIdx = headerRow.findIndex(h => h.includes("nama") || h.includes("lokasi"));
+        let colPicIdx = headerRow.findIndex(h => h.includes("pic") || h.includes("petugas"));
+        let colKategoriIdx = headerRow.findIndex(h => h.includes("kategori"));
+
+        if (colNamaIdx === -1) colNamaIdx = 0;
+        if (colPicIdx === -1) colPicIdx = 1;
+        if (colKategoriIdx === -1) colKategoriIdx = 2;
+
+        const dynamicLokasi = [];
+        for (let r = 1; r < lData.length; r++) {
+          const row = lData[r];
+          if (!row || row.length === 0) continue;
+
+          const nama = String(row[colNamaIdx] || "").trim();
+          const pic = String(row[colPicIdx] || "").trim();
+          // Normalisasi spasi jadi underscore agar cocok dengan key checklist (mis. "Lantai 5" -> "Lantai_5")
+          const kategori = String(row[colKategoriIdx] || "").trim().replace(/\s+/g, "_");
+
+          if (nama && !nama.toLowerCase().startsWith("nama") && !nama.toLowerCase().startsWith("lokasi")) {
+            dynamicLokasi.push({ nama: nama, pic: pic, kategori: kategori });
+          }
+        }
+        if (dynamicLokasi.length > 0) {
+          lokasi = dynamicLokasi;
+        }
+      }
+    } catch (errLokasi) {
+      Logger.log("Error membaca sheet 'lokasi': " + errLokasi.toString());
     }
   }
 

@@ -371,38 +371,70 @@
             } catch (e) { console.warn("Clear draft gagal", e); }
         }
 
-        // Load config via Fetch API
+        // Load config via Fetch API, dengan cache lokal (stale-while-revalidate)
+        // agar dropdown petugas tidak nunggu network setiap kali halaman dibuka.
+        const APP_CONFIG_CACHE_KEY = 'app_config_cache_v1';
+        let configInitialized = false;
+
+        function applyAppConfig(config) {
+            appConfig = config;
+            if (config.settings && config.settings.app_title) {
+                document.querySelector('.app-header h2').innerHTML = `🏢 ${config.settings.app_title}`;
+            }
+            const petugasSelect = document.getElementById('petugasSelect');
+            const currentValue = petugasSelect.value; // jangan reset pilihan user yang sedang aktif
+            petugasSelect.innerHTML = '<option value="" selected disabled>-- Pilih Petugas --</option>';
+            config.petugas.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.nama; opt.text = p.nama; petugasSelect.appendChild(opt);
+            });
+
+            // Auto-restore pilihan petugas aktif, atau yang terakhir dipakai, untuk 1-tap UX
+            const savedPetugas = currentValue || getSavedPetugas();
+            if (savedPetugas && config.petugas.some(p => p.nama === savedPetugas)) {
+                petugasSelect.value = savedPetugas;
+                updateLokasiOptions();
+            }
+        }
+
+        function finishInitialLoad() {
+            if (configInitialized) return;
+            configInitialized = true;
+            loadDraft();
+            renderChecklist();
+        }
+
         window.onload = () => {
             if (GAS_URL === 'MASUKKAN_URL_WEB_APP_GAS_ANDA_DI_SINI') {
                 Swal.fire('Instalasi Belum Selesai', 'Anda belum memasukkan URL Web App GAS ke file index.html', 'warning');
                 return;
             }
 
+            // 1. Tampilkan langsung dari cache lokal (kalau ada) sambil menunggu data terbaru
+            try {
+                const cachedRaw = localStorage.getItem(APP_CONFIG_CACHE_KEY);
+                if (cachedRaw) {
+                    const cachedConfig = JSON.parse(cachedRaw);
+                    if (cachedConfig && Array.isArray(cachedConfig.petugas)) {
+                        applyAppConfig(cachedConfig);
+                        finishInitialLoad();
+                    }
+                }
+            } catch (e) { console.warn('Baca cache config gagal', e); }
+
+            // 2. Ambil data terbaru dari server, perbarui tampilan & cache secara diam-diam
             safeFetchJson(GAS_URL)
                 .then(config => {
-                    appConfig = config;
-                    if (config.settings && config.settings.app_title) {
-                        document.querySelector('.app-header h2').innerHTML = `🏢 ${config.settings.app_title}`;
-                    }
-                    const petugasSelect = document.getElementById('petugasSelect');
-                    petugasSelect.innerHTML = '<option value="" selected disabled>-- Pilih Petugas --</option>';
-                    config.petugas.forEach(p => {
-                        const opt = document.createElement('option');
-                        opt.value = p.nama; opt.text = p.nama; petugasSelect.appendChild(opt);
-                    });
-
-                    // Auto-restore last selected petugas for 1-tap UX
-                    const savedPetugas = getSavedPetugas();
-                    if (savedPetugas && config.petugas.some(p => p.nama === savedPetugas)) {
-                        petugasSelect.value = savedPetugas;
-                        updateLokasiOptions();
-                    }
-
-                    loadDraft();
-                    renderChecklist();
+                    applyAppConfig(config);
+                    finishInitialLoad();
+                    try { localStorage.setItem(APP_CONFIG_CACHE_KEY, JSON.stringify(config)); } catch (e) { console.warn('Simpan cache config gagal', e); }
                 })
                 .catch(err => {
-                    Swal.fire('Error Connection', err.message || 'Gagal memuat API dari server.', 'error');
+                    if (configInitialized) {
+                        console.warn('Gagal refresh config, tetap pakai data cache terakhir.', err);
+                    } else {
+                        Swal.fire('Error Connection', err.message || 'Gagal memuat API dari server.', 'error');
+                    }
                 });
         };
 
